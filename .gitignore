@@ -6,7 +6,7 @@
 .DS_Store
 Thumbs.db
 
-vendor/
+/vendor/
 
 # Node.js dependencies
 node_modules/

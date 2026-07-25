@@ -334,10 +334,10 @@
 
 .sb-dashboard__cards {
 	display: grid;
-	grid-template-columns: repeat( auto-fit, minmax( 160px, 1fr ) );
+	grid-template-columns: repeat( auto-fit, minmax( 150px, 1fr ) );
 	gap: var( --sb-space-4 );
 	margin: var( --sb-space-4 ) 0 var( --sb-space-6 );
-	max-width: 900px;
+	max-width: 1100px;
 }
 
 .sb-card {
@@ -366,6 +366,33 @@
 
 .sb-card__label {
 	color: var( --sb-color-text-muted );
+}
+
+.sb-dashboard__charts {
+	display: grid;
+	grid-template-columns: repeat( auto-fit, minmax( 320px, 1fr ) );
+	gap: var( --sb-space-4 );
+	margin: var( --sb-space-4 ) 0 var( --sb-space-6 );
+	max-width: 1100px;
+}
+
+.sb-chart-card {
+	padding: var( --sb-space-4 );
+	background: var( --sb-color-bg );
+	border: 1px solid var( --sb-color-border );
+	border-radius: var( --sb-radius );
+	box-shadow: var( --sb-shadow );
+}
+
+.sb-chart-card__title {
+	margin: 0 0 var( --sb-space-3 );
+	font-size: 14px;
+	color: var( --sb-color-text );
+}
+
+.sb-chart-card__canvas-wrap {
+	position: relative;
+	height: 260px;
 }
 
 .sb-dashboard__links {
@@ -515,8 +542,13 @@
 	}
 
 	.sb-stats-table,
-	.sb-dashboard__links {
+	.sb-dashboard__links,
+	.sb-dashboard__charts {
 		max-width: 100%;
+	}
+
+	.sb-chart-card__canvas-wrap {
+		height: 220px;
 	}
 }
 

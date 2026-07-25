@@ -280,7 +280,7 @@ final class BookDetailsMetaBox implements Hookable {
 			),
 			'reading'         => array(
 				'title'  => __( 'Reading Progress', 'smartbook' ),
-				'fields' => array( 'sb_status', 'sb_progress', 'sb_rating', 'sb_favorite', 'sb_wishlist' ),
+				'fields' => array( 'sb_status', 'sb_progress', 'sb_rating', 'sb_favorite', 'sb_wishlist', 'sb_borrowed' ),
 			),
 			'notes'           => array(
 				'title'  => __( 'Notes', 'smartbook' ),

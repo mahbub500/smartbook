@@ -130,6 +130,11 @@ final class BookFields {
 				'label' => __( 'On Wishlist', 'smartbook' ),
 				'type'  => 'checkbox',
 			),
+			'sb_borrowed'      => array(
+				'label'       => __( 'Borrowed', 'smartbook' ),
+				'type'        => 'checkbox',
+				'description' => __( 'This copy is on loan (borrowed from or lent to someone else).', 'smartbook' ),
+			),
 		);
 	}
 

@@ -16,6 +16,7 @@ use SmartBook\Admin\Pages\SettingsPage;
 use SmartBook\Admin\Pages\StatisticsPage;
 use SmartBook\Core\AbstractServiceProvider;
 use SmartBook\Core\Contracts\ContainerInterface;
+use SmartBook\Services\BookStats;
 use SmartBook\Settings\Settings;
 
 /**
@@ -27,7 +28,13 @@ final class AdminServiceProvider extends AbstractServiceProvider {
 	 * {@inheritDoc}
 	 */
 	public function register( ContainerInterface $container ): void {
-		$container->singleton( DashboardPage::class, static fn (): DashboardPage => new DashboardPage() );
+		$container->singleton( BookStats::class, static fn (): BookStats => new BookStats() );
+
+		$container->singleton(
+			DashboardPage::class,
+			static fn ( ContainerInterface $container ): DashboardPage => new DashboardPage( $container->make( BookStats::class ) )
+		);
+
 		$container->singleton( BooksPage::class, static fn (): BooksPage => new BooksPage() );
 		$container->singleton( StatisticsPage::class, static fn (): StatisticsPage => new StatisticsPage() );
 		$container->singleton( ImportExportPage::class, static fn (): ImportExportPage => new ImportExportPage() );
@@ -54,6 +61,7 @@ final class AdminServiceProvider extends AbstractServiceProvider {
 	 */
 	public function boot( ContainerInterface $container ): void {
 		$container->make( AdminMenu::class )->register_hooks();
+		$container->make( DashboardPage::class )->register_hooks();
 		$container->make( ImportExportPage::class )->register_hooks();
 		$container->make( SettingsPage::class )->register_hooks();
 	}
