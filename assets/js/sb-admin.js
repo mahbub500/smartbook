@@ -259,6 +259,78 @@
 	}
 
 	/**
+	 * Turn each "[data-sb-tabs]" group of "[data-sb-tab-panel]" sections
+	 * into a tab strip, using each panel's own data-sb-tab-panel value
+	 * as the tab key and its (now-hidden) <h2> as the tab label. Every
+	 * panel stays in the DOM, just hidden, so this is a pure
+	 * display-layer enhancement over markup that already works fully
+	 * stacked without it (Import/Export's per-tab forms, Settings'
+	 * single shared form).
+	 */
+	function sb_initTabs( sb_scope ) {
+		var sb_containers = sb_scope.querySelectorAll( '[data-sb-tabs]' );
+
+		sb_containers.forEach( function ( sb_container ) {
+			var sb_panels = Array.prototype.slice.call( sb_container.querySelectorAll( '[data-sb-tab-panel]' ) );
+
+			if ( sb_panels.length < 2 ) {
+				return;
+			}
+
+			var sb_nav = sb_document.createElement( 'div' );
+			sb_nav.className = 'sb-tabs__nav';
+			sb_nav.setAttribute( 'role', 'tablist' );
+
+			var sb_activeKey = sb_container.getAttribute( 'data-sb-active-tab' ) || '';
+			var sb_hasActive = sb_panels.some( function ( sb_panel ) {
+				return sb_panel.getAttribute( 'data-sb-tab-panel' ) === sb_activeKey;
+			} );
+
+			if ( ! sb_hasActive ) {
+				sb_activeKey = sb_panels[ 0 ].getAttribute( 'data-sb-tab-panel' );
+			}
+
+			var sb_showPanel = function ( sb_key ) {
+				sb_panels.forEach( function ( sb_panel ) {
+					sb_panel.classList.toggle( 'sb-hidden', sb_panel.getAttribute( 'data-sb-tab-panel' ) !== sb_key );
+				} );
+
+				sb_nav.querySelectorAll( '.sb-tabs__tab' ).forEach( function ( sb_tab ) {
+					var sb_isActive = sb_tab.getAttribute( 'data-sb-tab' ) === sb_key;
+					sb_tab.classList.toggle( 'sb-tabs__tab--active', sb_isActive );
+					sb_tab.setAttribute( 'aria-selected', sb_isActive ? 'true' : 'false' );
+				} );
+			};
+
+			sb_panels.forEach( function ( sb_panel ) {
+				var sb_key = sb_panel.getAttribute( 'data-sb-tab-panel' );
+				var sb_heading = sb_panel.querySelector( 'h2' );
+
+				if ( ! sb_key || ! sb_heading ) {
+					return;
+				}
+
+				var sb_tab = sb_document.createElement( 'button' );
+				sb_tab.type = 'button';
+				sb_tab.className = 'sb-tabs__tab';
+				sb_tab.setAttribute( 'data-sb-tab', sb_key );
+				sb_tab.setAttribute( 'role', 'tab' );
+				sb_tab.textContent = sb_heading.textContent;
+
+				sb_tab.addEventListener( 'click', function () {
+					sb_showPanel( sb_key );
+				} );
+
+				sb_nav.appendChild( sb_tab );
+				sb_heading.classList.add( 'sb-hidden' );
+			} );
+
+			sb_container.insertBefore( sb_nav, sb_container.firstChild );
+			sb_showPanel( sb_activeKey );
+		} );
+	}
+
+	/**
 	 * Wire up the QR label selection checklist's "Select All" checkbox.
 	 */
 	function sb_initSelectAll( sb_scope ) {
@@ -287,6 +359,7 @@
 		sb_initConfirmLinks( sb_document );
 		sb_initPrintButtons( sb_document );
 		sb_initSelectAll( sb_document );
+		sb_initTabs( sb_document );
 
 		sb_document.dispatchEvent( new CustomEvent( 'sb:admin:ready', { detail: sb_window.sbAdmin } ) );
 	} );

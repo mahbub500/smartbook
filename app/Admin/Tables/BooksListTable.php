@@ -17,6 +17,8 @@ use WP_List_Table;
 use WP_Post;
 use WP_Query;
 
+use function sb_option;
+
 if ( ! class_exists( WP_List_Table::class ) ) {
 	require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
 }
@@ -85,12 +87,20 @@ final class BooksListTable extends WP_List_Table {
 			);
 		}
 
-		return array(
-			'trash'         => __( 'Move to Trash', 'smartbook' ),
-			'bulk_edit'     => __( 'Bulk Edit', 'smartbook' ),
-			'print_qr'      => __( 'Print QR Labels', 'smartbook' ),
-			'print_barcode' => __( 'Print Barcode Labels', 'smartbook' ),
+		$actions = array(
+			'trash'     => __( 'Move to Trash', 'smartbook' ),
+			'bulk_edit' => __( 'Bulk Edit', 'smartbook' ),
 		);
+
+		if ( sb_option( 'enable_qr', true ) ) {
+			$actions['print_qr'] = __( 'Print QR Labels', 'smartbook' );
+		}
+
+		if ( sb_option( 'enable_barcode', true ) ) {
+			$actions['print_barcode'] = __( 'Print Barcode Labels', 'smartbook' );
+		}
+
+		return $actions;
 	}
 
 	/**

@@ -23,6 +23,8 @@ use SmartBook\Taxonomies\GenreTaxonomy;
 use SmartBook\Taxonomies\PublisherTaxonomy;
 use SmartBook\Taxonomies\ShelfTaxonomy;
 
+use function sb_option;
+
 /**
  * Registers the top-level "SmartBook" admin menu and its nine entries:
  * Dashboard, Books, Authors, Genres, Publishers, Shelves, Statistics,
@@ -164,28 +166,34 @@ final class AdminMenu implements Hookable {
 		// immediately hidden from the visible menu: both are reached via
 		// the books table's "Print ... Labels" bulk actions, their per-row
 		// "Print Label" links, and their respective meta boxes, not via
-		// direct navigation.
-		add_submenu_page(
-			self::PARENT_SLUG,
-			__( 'QR Labels', 'smartbook' ),
-			__( 'QR Labels', 'smartbook' ),
-			BookPostType::CAP_EDIT_BOOKS,
-			'sb_qr_labels',
-			array( $this->qr_labels, 'render' )
-		);
+		// direct navigation. Skipped entirely when the matching feature
+		// is disabled (Settings\Settings), so the page simply doesn't
+		// exist rather than existing-but-hidden.
+		if ( sb_option( 'enable_qr', true ) ) {
+			add_submenu_page(
+				self::PARENT_SLUG,
+				__( 'QR Labels', 'smartbook' ),
+				__( 'QR Labels', 'smartbook' ),
+				BookPostType::CAP_EDIT_BOOKS,
+				'sb_qr_labels',
+				array( $this->qr_labels, 'render' )
+			);
 
-		remove_submenu_page( self::PARENT_SLUG, 'sb_qr_labels' );
+			remove_submenu_page( self::PARENT_SLUG, 'sb_qr_labels' );
+		}
 
-		add_submenu_page(
-			self::PARENT_SLUG,
-			__( 'Barcode Labels', 'smartbook' ),
-			__( 'Barcode Labels', 'smartbook' ),
-			BookPostType::CAP_EDIT_BOOKS,
-			'sb_barcode_labels',
-			array( $this->barcode_labels, 'render' )
-		);
+		if ( sb_option( 'enable_barcode', true ) ) {
+			add_submenu_page(
+				self::PARENT_SLUG,
+				__( 'Barcode Labels', 'smartbook' ),
+				__( 'Barcode Labels', 'smartbook' ),
+				BookPostType::CAP_EDIT_BOOKS,
+				'sb_barcode_labels',
+				array( $this->barcode_labels, 'render' )
+			);
 
-		remove_submenu_page( self::PARENT_SLUG, 'sb_barcode_labels' );
+			remove_submenu_page( self::PARENT_SLUG, 'sb_barcode_labels' );
+		}
 	}
 
 	/**

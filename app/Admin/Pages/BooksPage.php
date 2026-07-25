@@ -17,6 +17,8 @@ use SmartBook\Services\BarcodeManager;
 use SmartBook\Taxonomies\GenreTaxonomy;
 use SmartBook\Taxonomies\ShelfTaxonomy;
 
+use function sb_option;
+
 /**
  * Renders the custom books catalog (Admin\Tables\BooksListTable) and
  * processes the actions it can trigger: single/bulk trash, restore,
@@ -57,7 +59,9 @@ final class BooksPage {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'smartbook' ) );
 		}
 
-		$this->maybe_handle_barcode_scan();
+		if ( sb_option( 'enable_barcode', true ) ) {
+			$this->maybe_handle_barcode_scan();
+		}
 
 		$ids = $this->requested_ids();
 
@@ -76,11 +80,21 @@ final class BooksPage {
 
 		if ( 'print_qr' === $action && array() !== $ids ) {
 			check_admin_referer( 'bulk-books' );
+
+			if ( ! sb_option( 'enable_qr', true ) ) {
+				$this->redirect_with_notice( 'error', __( 'QR codes are disabled in SmartBook Settings.', 'smartbook' ) );
+			}
+
 			$this->redirect_to_print_labels( 'sb_qr_labels', $ids );
 		}
 
 		if ( 'print_barcode' === $action && array() !== $ids ) {
 			check_admin_referer( 'bulk-books' );
+
+			if ( ! sb_option( 'enable_barcode', true ) ) {
+				$this->redirect_with_notice( 'error', __( 'Barcodes are disabled in SmartBook Settings.', 'smartbook' ) );
+			}
+
 			$this->redirect_to_print_labels( 'sb_barcode_labels', $ids );
 		}
 
@@ -99,7 +113,10 @@ final class BooksPage {
 		);
 
 		$this->render_notice();
-		$this->render_scan_form();
+
+		if ( sb_option( 'enable_barcode', true ) ) {
+			$this->render_scan_form();
+		}
 
 		echo '<form method="post">';
 		printf( '<input type="hidden" name="page" value="%s" />', esc_attr( self::PAGE_SLUG ) );

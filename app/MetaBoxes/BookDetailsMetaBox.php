@@ -13,6 +13,8 @@ use SmartBook\Core\Contracts\Hookable;
 use SmartBook\PostTypes\BookPostType;
 use WP_Post;
 
+use function sb_option;
+
 /**
  * Renders and persists the "Book Details" meta box on the "sb_book"
  * edit screen: sixteen sb_-prefixed meta fields (defined in BookFields)
@@ -75,7 +77,7 @@ final class BookDetailsMetaBox implements Hookable {
 
 		echo '<div class="sb-meta-box">';
 
-		foreach ( $this->sections() as $section ) {
+		foreach ( $this->visible_sections() as $section ) {
 			printf( '<h3 class="sb-meta-box__section-title">%s</h3>', esc_html( $section['title'] ) );
 			echo '<div class="sb-meta-box__grid">';
 
@@ -100,8 +102,18 @@ final class BookDetailsMetaBox implements Hookable {
 			return;
 		}
 
-		foreach ( BookFields::definitions() as $key => $field ) {
-			$this->save_field( $post_id, $key, $field );
+		$fields = BookFields::definitions();
+
+		// Only save fields belonging to a currently-visible section: a
+		// disabled section's fields are removed from the form entirely,
+		// and a checkbox field sends no value at all when its containing
+		// section wasn't even rendered, which save_field()'s "checkbox"
+		// branch would otherwise read as "unchecked" and persist as such,
+		// silently wiping stored data every time the feature is off.
+		foreach ( $this->visible_sections() as $section ) {
+			foreach ( $section['fields'] as $key ) {
+				$this->save_field( $post_id, $key, $fields[ $key ] );
+			}
 		}
 	}
 
@@ -264,32 +276,56 @@ final class BookDetailsMetaBox implements Hookable {
 	}
 
 	/**
-	 * Field keys grouped into display sections, in render order.
+	 * Field keys grouped into display sections, in render order. A
+	 * section with a non-null "gate" is only rendered/saved when the
+	 * named Settings\Settings boolean is true -- see visible_sections().
 	 *
-	 * @return array<string, array{title: string, fields: string[]}>
+	 * @return array<string, array{title: string, fields: string[], gate: ?string}>
 	 */
 	private function sections(): array {
 		return array(
 			'identification' => array(
 				'title'  => __( 'Identification', 'smartbook' ),
 				'fields' => array( 'sb_isbn', 'sb_isbn13', 'sb_barcode', 'sb_pages', 'sb_edition', 'sb_language', 'sb_format' ),
+				'gate'   => null,
 			),
 			'condition'       => array(
 				'title'  => __( 'Condition & Value', 'smartbook' ),
 				'fields' => array( 'sb_condition', 'sb_price', 'sb_purchase_date' ),
+				'gate'   => null,
 			),
-			'reading'         => array(
+			'reading_tracker' => array(
 				'title'  => __( 'Reading Progress', 'smartbook' ),
-				'fields' => array( 'sb_status', 'sb_progress', 'sb_rating', 'sb_favorite', 'sb_wishlist' ),
+				'fields' => array( 'sb_status', 'sb_progress' ),
+				'gate'   => 'enable_reading_tracker',
+			),
+			'rating'          => array(
+				'title'  => __( 'Rating & Lists', 'smartbook' ),
+				'fields' => array( 'sb_rating', 'sb_favorite', 'sb_wishlist' ),
+				'gate'   => null,
 			),
 			'borrow'          => array(
 				'title'  => __( 'Borrow Management', 'smartbook' ),
 				'fields' => array( 'sb_borrowed', 'sb_borrowed_to', 'sb_borrow_date', 'sb_return_date', 'sb_reminder', 'sb_returned', 'sb_lost' ),
+				'gate'   => 'enable_borrow',
 			),
 			'notes'           => array(
 				'title'  => __( 'Notes', 'smartbook' ),
 				'fields' => array( 'sb_notes', 'sb_summary' ),
+				'gate'   => null,
 			),
+		);
+	}
+
+	/**
+	 * sections(), minus any section whose "gate" setting is currently off.
+	 *
+	 * @return array<string, array{title: string, fields: string[], gate: ?string}>
+	 */
+	private function visible_sections(): array {
+		return array_filter(
+			$this->sections(),
+			static fn ( array $section ): bool => null === $section['gate'] || sb_option( $section['gate'], true )
 		);
 	}
 }

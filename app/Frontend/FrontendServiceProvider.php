@@ -22,6 +22,7 @@ final class FrontendServiceProvider extends AbstractServiceProvider {
 	 */
 	public function register( ContainerInterface $container ): void {
 		$container->singleton( BookContentDisplay::class, static fn (): BookContentDisplay => new BookContentDisplay() );
+		$container->singleton( BooksShortcode::class, static fn (): BooksShortcode => new BooksShortcode() );
 	}
 
 	/**
@@ -29,5 +30,6 @@ final class FrontendServiceProvider extends AbstractServiceProvider {
 	 */
 	public function boot( ContainerInterface $container ): void {
 		$container->make( BookContentDisplay::class )->register_hooks();
+		$container->make( BooksShortcode::class )->register_hooks();
 	}
 }

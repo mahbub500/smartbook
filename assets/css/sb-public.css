@@ -33,15 +33,48 @@
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
+	padding: 16px;
+	background: var( --sb-color-bg );
+	border: 1px solid var( --sb-color-border );
+	border-radius: 8px;
+	color: var( --sb-color-text );
+}
+
+.sb-book__cover {
+	width: 100%;
+	height: auto;
+	border-radius: 4px;
 }
 
 .sb-book__title {
 	font-weight: 600;
+	color: inherit;
+	text-decoration: none;
+}
+
+.sb-book__title:hover,
+.sb-book__title:focus-visible {
+	text-decoration: underline;
 }
 
 .sb-book__meta {
 	font-size: 0.875em;
 	opacity: 0.75;
+}
+
+/* -------------------------------------------------------------------- */
+/* Books list (Frontend\BooksShortcode, the "[smartbook_books]" shortcode) */
+/* -------------------------------------------------------------------- */
+
+.sb-books-list {
+	display: grid;
+	grid-template-columns: repeat( auto-fill, minmax( 200px, 1fr ) );
+	gap: 24px;
+	margin: 24px 0;
+}
+
+.sb-books-list__empty {
+	color: var( --sb-color-text-muted );
 }
 
 /* -------------------------------------------------------------------- */
