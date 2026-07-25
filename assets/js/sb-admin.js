@@ -244,6 +244,39 @@
 		} );
 	}
 
+	/**
+	 * Wire up "[data-sb-print]" buttons (the QR label print sheet) to
+	 * trigger the browser's print dialog.
+	 */
+	function sb_initPrintButtons( sb_scope ) {
+		var sb_buttons = sb_scope.querySelectorAll( '[data-sb-print]' );
+
+		sb_buttons.forEach( function ( sb_button ) {
+			sb_button.addEventListener( 'click', function () {
+				sb_window.print();
+			} );
+		} );
+	}
+
+	/**
+	 * Wire up the QR label selection checklist's "Select All" checkbox.
+	 */
+	function sb_initSelectAll( sb_scope ) {
+		var sb_selectAll = sb_scope.getElementById( 'sb-select-all-books' );
+
+		if ( ! sb_selectAll ) {
+			return;
+		}
+
+		var sb_checkboxes = sb_scope.querySelectorAll( '.sb-qr-select-list__checkbox' );
+
+		sb_selectAll.addEventListener( 'change', function () {
+			sb_checkboxes.forEach( function ( sb_checkbox ) {
+				sb_checkbox.checked = sb_selectAll.checked;
+			} );
+		} );
+	}
+
 	sb_ready( function () {
 		sb_initNotices( sb_document );
 		sb_initAccordions( sb_document );
@@ -252,6 +285,8 @@
 		sb_initTextareaAutosize( sb_document );
 		sb_initImportConfirm( sb_document );
 		sb_initConfirmLinks( sb_document );
+		sb_initPrintButtons( sb_document );
+		sb_initSelectAll( sb_document );
 
 		sb_document.dispatchEvent( new CustomEvent( 'sb:admin:ready', { detail: sb_window.sbAdmin } ) );
 	} );

@@ -12,11 +12,13 @@ namespace SmartBook\Admin;
 use SmartBook\Admin\Pages\BooksPage;
 use SmartBook\Admin\Pages\DashboardPage;
 use SmartBook\Admin\Pages\ImportExportPage;
+use SmartBook\Admin\Pages\QrLabelsPage;
 use SmartBook\Admin\Pages\SettingsPage;
 use SmartBook\Admin\Pages\StatisticsPage;
 use SmartBook\Core\AbstractServiceProvider;
 use SmartBook\Core\Contracts\ContainerInterface;
 use SmartBook\Services\BookStats;
+use SmartBook\Services\QrCodeManager;
 use SmartBook\Settings\Settings;
 
 /**
@@ -45,12 +47,18 @@ final class AdminServiceProvider extends AbstractServiceProvider {
 		);
 
 		$container->singleton(
+			QrLabelsPage::class,
+			static fn ( ContainerInterface $container ): QrLabelsPage => new QrLabelsPage( $container->make( QrCodeManager::class ) )
+		);
+
+		$container->singleton(
 			AdminMenu::class,
 			static fn ( ContainerInterface $container ): AdminMenu => new AdminMenu(
 				$container->make( DashboardPage::class ),
 				$container->make( BooksPage::class ),
 				$container->make( StatisticsPage::class ),
 				$container->make( ImportExportPage::class ),
+				$container->make( QrLabelsPage::class ),
 				$container->make( SettingsPage::class )
 			)
 		);

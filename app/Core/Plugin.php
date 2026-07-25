@@ -15,9 +15,11 @@ use SmartBook\Assets\AssetServiceProvider;
 use SmartBook\Core\Container\Container;
 use SmartBook\Core\Contracts\ContainerInterface;
 use SmartBook\Core\Contracts\ServiceProviderInterface;
+use SmartBook\Frontend\FrontendServiceProvider;
 use SmartBook\MetaBoxes\MetaBoxServiceProvider;
 use SmartBook\PostTypes\PostTypeServiceProvider;
 use SmartBook\Services\LoggerServiceProvider;
+use SmartBook\Services\QrCodeServiceProvider;
 use SmartBook\Settings\SettingsServiceProvider;
 use SmartBook\Taxonomies\TaxonomyServiceProvider;
 
@@ -50,7 +52,9 @@ final class Plugin {
 		AssetServiceProvider::class,
 		PostTypeServiceProvider::class,
 		TaxonomyServiceProvider::class,
+		QrCodeServiceProvider::class,
 		MetaBoxServiceProvider::class,
+		FrontendServiceProvider::class,
 		AdminServiceProvider::class,
 	);
 

@@ -12,6 +12,7 @@ namespace SmartBook\Admin;
 use SmartBook\Admin\Pages\BooksPage;
 use SmartBook\Admin\Pages\DashboardPage;
 use SmartBook\Admin\Pages\ImportExportPage;
+use SmartBook\Admin\Pages\QrLabelsPage;
 use SmartBook\Admin\Pages\SettingsPage;
 use SmartBook\Admin\Pages\StatisticsPage;
 use SmartBook\Core\Contracts\Hookable;
@@ -24,12 +25,13 @@ use SmartBook\Taxonomies\ShelfTaxonomy;
 /**
  * Registers the top-level "SmartBook" admin menu and its nine entries:
  * Dashboard, Books, Authors, Genres, Publishers, Shelves, Statistics,
- * Import Export, and Settings.
+ * Import Export, and Settings, plus a tenth, deliberately hidden
+ * "QR Labels" page (see register()).
  *
  * BookPostType and the four linked taxonomies are registered with
  * show_in_menu => false, so WordPress does not also auto-add its own
- * menu entries for them; every entry here is explicit, so the menu is
- * exactly these nine items, no more.
+ * menu entries for them; every entry here is explicit, so the visible
+ * menu is exactly those nine items, no more.
  */
 final class AdminMenu implements Hookable {
 
@@ -43,6 +45,7 @@ final class AdminMenu implements Hookable {
 	 * @param BooksPage        $books         Books list page renderer.
 	 * @param StatisticsPage   $statistics    Statistics page renderer.
 	 * @param ImportExportPage $import_export Import/export page renderer.
+	 * @param QrLabelsPage     $qr_labels     QR label print page renderer.
 	 * @param SettingsPage     $settings      Settings page renderer.
 	 */
 	public function __construct(
@@ -50,6 +53,7 @@ final class AdminMenu implements Hookable {
 		private readonly BooksPage $books,
 		private readonly StatisticsPage $statistics,
 		private readonly ImportExportPage $import_export,
+		private readonly QrLabelsPage $qr_labels,
 		private readonly SettingsPage $settings
 	) {
 	}
@@ -151,6 +155,22 @@ final class AdminMenu implements Hookable {
 			'sb_settings',
 			array( $this->settings, 'render' )
 		);
+
+		// Registered so admin.php?page=sb_qr_labels routes and is
+		// capability-gated like any other page, then immediately hidden
+		// from the visible menu: it's reached via the books table's
+		// "Print QR Labels" bulk action, its per-row "Print Label" link,
+		// and the QR Code meta box, not via direct navigation.
+		add_submenu_page(
+			self::PARENT_SLUG,
+			__( 'QR Labels', 'smartbook' ),
+			__( 'QR Labels', 'smartbook' ),
+			BookPostType::CAP_EDIT_BOOKS,
+			'sb_qr_labels',
+			array( $this->qr_labels, 'render' )
+		);
+
+		remove_submenu_page( self::PARENT_SLUG, 'sb_qr_labels' );
 	}
 
 	/**

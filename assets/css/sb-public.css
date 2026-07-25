@@ -2,6 +2,29 @@
  * SmartBook public styles.
  */
 
+:root {
+	--sb-color-bg: #ffffff;
+	--sb-color-bg-subtle: #f6f7f7;
+	--sb-color-border: #dcdcde;
+	--sb-color-text: #1d2327;
+	--sb-color-text-muted: #646970;
+	--sb-color-primary: #2271b1;
+	--sb-color-star-filled: #dba617;
+}
+
+@media ( prefers-color-scheme: dark ) {
+
+	:root {
+		--sb-color-bg: #1e1e1e;
+		--sb-color-bg-subtle: #2c3338;
+		--sb-color-border: #3c434a;
+		--sb-color-text: #f0f0f1;
+		--sb-color-text-muted: #a7aaad;
+		--sb-color-primary: #72aee6;
+		--sb-color-star-filled: #f0c33c;
+	}
+}
+
 .sb-hidden {
 	display: none;
 }
@@ -19,4 +42,90 @@
 .sb-book__meta {
 	font-size: 0.875em;
 	opacity: 0.75;
+}
+
+/* -------------------------------------------------------------------- */
+/* Book details panel (Frontend\BookContentDisplay)                     */
+/* -------------------------------------------------------------------- */
+
+.sb-book-panel {
+	max-width: 640px;
+	margin: 32px 0;
+	padding: 20px 24px;
+	background: var( --sb-color-bg-subtle );
+	border: 1px solid var( --sb-color-border );
+	border-radius: 8px;
+	color: var( --sb-color-text );
+}
+
+.sb-book-panel__title {
+	margin: 0 0 12px;
+	font-size: 1.1em;
+}
+
+.sb-book-panel__list {
+	display: grid;
+	grid-template-columns: max-content 1fr;
+	gap: 8px 16px;
+	margin: 0;
+}
+
+.sb-book-panel__row {
+	display: contents;
+}
+
+.sb-book-panel__row dt {
+	font-weight: 600;
+	color: var( --sb-color-text-muted );
+}
+
+.sb-book-panel__row dd {
+	margin: 0;
+}
+
+.sb-book-panel__progress {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 160px;
+}
+
+.sb-book-panel__progress-track {
+	flex: 1 1 auto;
+	height: 8px;
+	background: var( --sb-color-border );
+	border-radius: 999px;
+	overflow: hidden;
+}
+
+.sb-book-panel__progress-fill {
+	height: 100%;
+	background: var( --sb-color-primary );
+	border-radius: inherit;
+}
+
+.sb-book-panel__rating {
+	color: var( --sb-color-star-filled );
+	letter-spacing: 1px;
+}
+
+.sb-book-panel__notes-title {
+	margin: 16px 0 4px;
+	font-size: 1em;
+}
+
+.sb-book-panel__notes {
+	margin: 0;
+	white-space: pre-line;
+}
+
+@media ( max-width: 480px ) {
+
+	.sb-book-panel__list {
+		grid-template-columns: 1fr;
+	}
+
+	.sb-book-panel__row dt {
+		margin-top: 8px;
+	}
 }

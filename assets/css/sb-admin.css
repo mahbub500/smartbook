@@ -524,6 +524,94 @@
 }
 
 /* -------------------------------------------------------------------- */
+/* QR code meta box                                                      */
+/* -------------------------------------------------------------------- */
+
+.sb-qr-meta-box {
+	text-align: center;
+}
+
+.sb-qr-meta-box__image {
+	width: 100%;
+	max-width: 150px;
+	height: auto;
+	background: #fff;
+	border: 1px solid var( --sb-color-border );
+	border-radius: var( --sb-radius );
+	padding: var( --sb-space-2 );
+}
+
+.sb-qr-meta-box__empty {
+	color: var( --sb-color-text-muted );
+	font-size: 12px;
+}
+
+/* -------------------------------------------------------------------- */
+/* QR labels: selection checklist                                        */
+/* -------------------------------------------------------------------- */
+
+.sb-qr-select-list {
+	max-width: 480px;
+	max-height: 420px;
+	overflow-y: auto;
+	margin: var( --sb-space-3 ) 0;
+	padding: var( --sb-space-3 ) var( --sb-space-4 );
+	background: var( --sb-color-bg );
+	border: 1px solid var( --sb-color-border );
+	border-radius: var( --sb-radius );
+}
+
+.sb-qr-select-list li {
+	margin-bottom: var( --sb-space-2 );
+}
+
+/* -------------------------------------------------------------------- */
+/* QR labels: print sheet (screen preview)                               */
+/* -------------------------------------------------------------------- */
+
+.sb-qr-labels-grid {
+	display: grid;
+	grid-template-columns: repeat( 3, 1fr );
+	gap: var( --sb-space-4 );
+	max-width: 900px;
+	margin-top: var( --sb-space-4 );
+}
+
+.sb-qr-label {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var( --sb-space-1 );
+	padding: var( --sb-space-3 );
+	background: #fff;
+	color: #1d2327;
+	border: 1px dashed var( --sb-color-border );
+	border-radius: var( --sb-radius );
+	text-align: center;
+}
+
+.sb-qr-label__image {
+	width: 100%;
+	max-width: 120px;
+	height: auto;
+}
+
+.sb-qr-label__title {
+	font-weight: 600;
+	font-size: 12px;
+	line-height: 1.3;
+	overflow: hidden;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+}
+
+.sb-qr-label__shelf {
+	font-size: 11px;
+	color: #646970;
+}
+
+/* -------------------------------------------------------------------- */
 /* Responsive                                                            */
 /* -------------------------------------------------------------------- */
 
@@ -564,5 +652,60 @@
 
 	.sb-books-table__actions {
 		flex-direction: column;
+	}
+
+	.sb-qr-labels-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* -------------------------------------------------------------------- */
+/* Print: QR label sheet (Admin\Pages\QrLabelsPage)                     */
+/* -------------------------------------------------------------------- */
+
+.sb-no-print {
+	display: block;
+}
+
+@media print {
+
+	@page {
+		size: A4;
+		margin: 10mm;
+	}
+
+	/* Hide everything that isn't the label sheet itself. */
+	#adminmenumain,
+	#wpadminbar,
+	#wpfooter,
+	#screen-meta,
+	#screen-meta-links,
+	.sb-admin-page > h1,
+	.sb-no-print {
+		display: none !important;
+	}
+
+	html.wp-toolbar {
+		padding-top: 0 !important;
+	}
+
+	#wpcontent,
+	#wpbody-content {
+		margin: 0 !important;
+		padding: 0 !important;
+	}
+
+	.sb-qr-labels-grid {
+		display: grid;
+		grid-template-columns: repeat( 3, 1fr );
+		gap: 4mm;
+		max-width: none;
+		margin: 0;
+	}
+
+	.sb-qr-label {
+		border: 1px dashed #999;
+		break-inside: avoid;
+		page-break-inside: avoid;
 	}
 }

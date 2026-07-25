@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace SmartBook\Core;
 
 use SmartBook\PostTypes\BookPostType;
+use WP_Filesystem_Base;
 
 /**
  * Permanently removes all data owned by the plugin. Invoked only from
@@ -33,6 +34,7 @@ final class Uninstaller {
 		self::delete_transients();
 		self::clear_scheduled_events();
 		self::revoke_capabilities();
+		self::delete_qr_code_directory();
 
 		if ( is_multisite() ) {
 			self::uninstall_for_network();
@@ -89,6 +91,30 @@ final class Uninstaller {
 	}
 
 	/**
+	 * Remove the uploads/sb-qrcodes directory and every QR image in it,
+	 * for the current site.
+	 */
+	private static function delete_qr_code_directory(): void {
+		$directory = trailingslashit( wp_upload_dir()['basedir'] ) . 'sb-qrcodes';
+
+		if ( ! is_dir( $directory ) ) {
+			return;
+		}
+
+		if ( ! function_exists( 'WP_Filesystem' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
+		WP_Filesystem();
+
+		global $wp_filesystem;
+
+		if ( $wp_filesystem instanceof WP_Filesystem_Base ) {
+			$wp_filesystem->delete( $directory, true );
+		}
+	}
+
+	/**
 	 * Repeat the per-site cleanup across every site in a multisite network.
 	 */
 	private static function uninstall_for_network(): void {
@@ -101,6 +127,7 @@ final class Uninstaller {
 			self::delete_transients();
 			self::clear_scheduled_events();
 			self::revoke_capabilities();
+			self::delete_qr_code_directory();
 
 			restore_current_blog();
 		}

@@ -88,6 +88,7 @@ final class BooksListTable extends WP_List_Table {
 		return array(
 			'trash'     => __( 'Move to Trash', 'smartbook' ),
 			'bulk_edit' => __( 'Bulk Edit', 'smartbook' ),
+			'print_qr'  => __( 'Print QR Labels', 'smartbook' ),
 		);
 	}
 
@@ -370,6 +371,12 @@ final class BooksListTable extends WP_List_Table {
 			esc_html__( 'Edit', 'smartbook' )
 		);
 
+		$links[] = sprintf(
+			'<a class="button button-small" href="%s">%s</a>',
+			esc_url( $this->print_label_url( $item->ID ) ),
+			esc_html__( 'Print Label', 'smartbook' )
+		);
+
 		if ( $is_trashed ) {
 			$links[] = sprintf(
 				'<a class="button button-small" href="%s">%s</a>',
@@ -392,6 +399,20 @@ final class BooksListTable extends WP_List_Table {
 		}
 
 		return '<div class="sb-books-table__actions">' . implode( ' ', $links ) . '</div>';
+	}
+
+	/**
+	 * URL to this book's single-label print sheet.
+	 */
+	private function print_label_url( int $post_id ): string {
+		return add_query_arg(
+			array(
+				'page'            => 'sb_qr_labels',
+				'sb_book_id'      => array( $post_id ),
+				'sb_print_labels' => '1',
+			),
+			admin_url( 'admin.php' )
+		);
 	}
 
 	/**

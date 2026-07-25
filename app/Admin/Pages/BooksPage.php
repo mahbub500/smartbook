@@ -65,6 +65,11 @@ final class BooksPage {
 			return;
 		}
 
+		if ( 'print_qr' === $action && array() !== $ids ) {
+			check_admin_referer( 'bulk-books' );
+			$this->redirect_to_print_labels( $ids );
+		}
+
 		if ( in_array( $action, array( 'trash', 'untrash', 'delete' ), true ) && array() !== $ids ) {
 			$this->handle_row_action( $action, $ids );
 		}
@@ -121,6 +126,25 @@ final class BooksPage {
 		}
 
 		$this->redirect_with_notice( 'success', $this->row_action_message( $action, $count ) );
+	}
+
+	/**
+	 * Redirect the selected books straight to the QR label print sheet.
+	 * This is a navigation, not a mutation, so unlike handle_row_action()
+	 * it doesn't touch any data or show a result notice.
+	 *
+	 * @param int[] $ids Post IDs to print labels for.
+	 */
+	private function redirect_to_print_labels( array $ids ): never {
+		$args = array(
+			'page'            => 'sb_qr_labels',
+			'sb_print_labels' => '1',
+			'sb_book_id'      => $ids,
+		);
+
+		wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
+
+		exit;
 	}
 
 	/**
