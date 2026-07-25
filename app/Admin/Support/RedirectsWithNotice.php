@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Admin\Support;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Several admin pages process an action (import, export, bulk edit,
  * trash/delete) and then need to redirect back to themselves with a
@@ -27,6 +31,9 @@ trait RedirectsWithNotice {
 	/**
 	 * Redirect back to the page with a result notice, then terminate the
 	 * request (standard for a POST/admin-post.php handler).
+	 *
+	 * @param string $type    Notice type, "success" or "error".
+	 * @param string $message Notice message to display.
 	 */
 	private function redirect_with_notice( string $type, string $message ): never {
 		wp_safe_redirect(
@@ -49,15 +56,21 @@ trait RedirectsWithNotice {
 	 * @return array{type: string, message: string}|null
 	 */
 	private function consume_notice(): ?array {
+		// Read-only: this is this same class's own one-time notice, set by
+		// its own prior redirect_with_notice() call, not attacker input
+		// acted upon; only ever echoed back, escaped, to the same user.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( ! isset( $_GET['sb_notice'] ) ) {
 			return null;
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$type = isset( $_GET['sb_notice_type'] ) && 'success' === $_GET['sb_notice_type'] ? 'success' : 'error';
 
 		return array(
 			'type'    => $type,
-			'message' => sanitize_text_field( wp_unslash( rawurldecode( (string) $_GET['sb_notice'] ) ) ),
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitize_text_field() is the outermost call and sanitizes the final, fully-decoded value.
+			'message' => sanitize_text_field( rawurldecode( wp_unslash( (string) $_GET['sb_notice'] ) ) ),
 		);
 	}
 

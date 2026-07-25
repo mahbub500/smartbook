@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Admin\Pages;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\Admin\Support\RedirectsWithNotice;
 use SmartBook\Core\Contracts\Hookable;
 use SmartBook\MetaBoxes\BookFields;
@@ -30,12 +34,12 @@ final class ImportExportPage implements Hookable {
 	use RedirectsWithNotice;
 
 	/**
-	 * admin-post.php action name for exporting.
+	 * Admin-post.php action name for exporting.
 	 */
 	private const EXPORT_ACTION = 'sb_export_books';
 
 	/**
-	 * admin-post.php action name for importing.
+	 * Admin-post.php action name for importing.
 	 */
 	private const IMPORT_ACTION = 'sb_import_books';
 
@@ -107,12 +111,15 @@ final class ImportExportPage implements Hookable {
 		$this->verify_request();
 
 		$posts = get_posts(
-			array(
-				'post_type'      => BookPostType::SLUG,
-				'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
-				'posts_per_page' => -1,
-				'orderby'        => 'title',
-				'order'          => 'ASC',
+			array_merge(
+				array(
+					'post_type'      => BookPostType::SLUG,
+					'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
+					'posts_per_page' => -1,
+					'orderby'        => 'title',
+					'order'          => 'ASC',
+				),
+				BookPostType::author_scope_args()
 			)
 		);
 
@@ -137,7 +144,7 @@ final class ImportExportPage implements Hookable {
 			fputcsv( $handle, $row );
 		}
 
-		fclose( $handle );
+		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closes the "php://output" stream opened above, not a file on disk.
 		exit;
 	}
 
@@ -147,33 +154,45 @@ final class ImportExportPage implements Hookable {
 	public function handle_import(): void {
 		$this->verify_request();
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotValidated -- nonce already verified above; UPLOAD_ERR_OK check below is exactly the existence/validity check the sniff is asking for.
 		if ( ! isset( $_FILES[ self::FILE_FIELD ] ) || UPLOAD_ERR_OK !== $_FILES[ self::FILE_FIELD ]['error'] ) {
 			$this->redirect_with_notice( 'error', __( 'Please choose a CSV file to upload.', 'smartbook' ) );
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce already verified above; $_FILES is a server-populated superglobal, not free-form user text, and every value used below is separately validated (filetype) or read straight from disk (tmp_name).
 		$file     = $_FILES[ self::FILE_FIELD ];
-		$filetype = wp_check_filetype( $file['name'], array( 'csv' => 'text/csv' ) );
+		$filetype = wp_check_filetype_and_ext( $file['tmp_name'], $file['name'], array( 'csv' => 'text/csv' ) );
 
 		if ( 'csv' !== $filetype['ext'] ) {
 			$this->redirect_with_notice( 'error', __( 'Only CSV files are supported.', 'smartbook' ) );
 		}
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_fopen
-		$handle = fopen( $file['tmp_name'], 'r' );
+		$contents = $this->read_uploaded_file( $file['tmp_name'] );
 
-		if ( false === $handle ) {
+		if ( false === $contents ) {
 			$this->redirect_with_notice( 'error', __( 'The uploaded file could not be read.', 'smartbook' ) );
 		}
+
+		// An in-memory stream (not a real filesystem path) so fgetcsv() can
+		// do RFC4180-correct parsing of quoted multi-line cells (e.g. a
+		// multi-line "sb_notes" value), which naive line-splitting would break.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- "php://temp/" is an in-memory stream, not a file on disk.
+		$handle = fopen( 'php://temp/', 'r+' );
+		fwrite( $handle, $contents ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- writing into the in-memory stream opened above, not a file on disk.
+		rewind( $handle );
 
 		$header = fgetcsv( $handle );
 
 		if ( false === $header ) {
-			fclose( $handle );
+			fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closes the in-memory stream opened above, not a file on disk.
 			$this->redirect_with_notice( 'error', __( 'The uploaded file is empty.', 'smartbook' ) );
 		}
 
 		$imported = 0;
 
+		// Assignment-in-condition is the standard idiom for draining an
+		// fgetcsv() stream; false is its own defined "no more rows" signal.
+		// phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition
 		while ( false !== ( $row = fgetcsv( $handle ) ) ) {
 			$data = array_combine( $header, array_pad( $row, count( $header ), '' ) );
 
@@ -185,7 +204,7 @@ final class ImportExportPage implements Hookable {
 			++$imported;
 		}
 
-		fclose( $handle );
+		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closes the in-memory stream opened above, not a file on disk.
 
 		$this->redirect_with_notice(
 			'success',
@@ -195,6 +214,25 @@ final class ImportExportPage implements Hookable {
 				$imported
 			)
 		);
+	}
+
+	/**
+	 * Read an uploaded file's contents via WP_Filesystem rather than a
+	 * direct filesystem call, per WordPress's file-operations guidelines.
+	 *
+	 * @param string $tmp_name PHP-managed temporary upload path from $_FILES.
+	 *
+	 * @return string|false File contents, or false on failure.
+	 */
+	private function read_uploaded_file( string $tmp_name ): string|false {
+		global $wp_filesystem;
+
+		if ( ! $wp_filesystem instanceof \WP_Filesystem_Base ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			WP_Filesystem();
+		}
+
+		return $wp_filesystem->get_contents( $tmp_name );
 	}
 
 	/**
@@ -213,7 +251,20 @@ final class ImportExportPage implements Hookable {
 				: 'draft',
 		);
 
-		if ( $post_id > 0 && get_post( $post_id ) instanceof WP_Post ) {
+		if ( $post_id > 0 ) {
+			$existing = get_post( $post_id );
+
+			// The row targets an existing post: only allow the update if it is
+			// already a book and the current user is allowed to edit that
+			// specific book (not just books in general), otherwise a crafted
+			// CSV row could hijack any post ID on the site.
+			if ( ! $existing instanceof WP_Post
+				|| BookPostType::SLUG !== $existing->post_type
+				|| ! current_user_can( 'edit_post', $post_id )
+			) {
+				return;
+			}
+
 			$post_data['ID'] = $post_id;
 			wp_update_post( $post_data );
 		} else {
@@ -254,6 +305,8 @@ final class ImportExportPage implements Hookable {
 	 * spreadsheet application would interpret as the start of a formula,
 	 * preventing CSV formula injection when the file is opened in Excel
 	 * or similar.
+	 *
+	 * @param string $value Cell value.
 	 */
 	private function csv_safe( string $value ): string {
 		if ( '' !== $value && str_contains( '=+-@', $value[0] ) ) {

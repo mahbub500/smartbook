@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Frontend;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\Core\AbstractServiceProvider;
 use SmartBook\Core\Contracts\ContainerInterface;
 
@@ -19,6 +23,8 @@ final class FrontendServiceProvider extends AbstractServiceProvider {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param ContainerInterface $container Application service container.
 	 */
 	public function register( ContainerInterface $container ): void {
 		$container->singleton( BookContentDisplay::class, static fn (): BookContentDisplay => new BookContentDisplay() );
@@ -26,6 +32,8 @@ final class FrontendServiceProvider extends AbstractServiceProvider {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param ContainerInterface $container Application service container.
 	 */
 	public function boot( ContainerInterface $container ): void {
 		$container->make( BookContentDisplay::class )->register_hooks();

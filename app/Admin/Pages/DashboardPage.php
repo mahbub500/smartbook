@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Admin\Pages;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\Admin\AdminMenu;
 use SmartBook\Core\Contracts\Hookable;
 use SmartBook\PostTypes\BookPostType;
@@ -29,6 +33,8 @@ use function sb_asset_version;
 final class DashboardPage implements Hookable {
 
 	/**
+	 * Create the dashboard page.
+	 *
 	 * @param BookStats $stats Book catalog statistics.
 	 */
 	public function __construct( private readonly BookStats $stats ) {
@@ -114,6 +120,9 @@ final class DashboardPage implements Hookable {
 
 	/**
 	 * Render a single stat card.
+	 *
+	 * @param string $label Stat label.
+	 * @param int    $value Stat value.
 	 */
 	private function render_card( string $label, int $value ): void {
 		printf(
@@ -155,7 +164,7 @@ final class DashboardPage implements Hookable {
 				esc_html( $alert['title'] ),
 				esc_html( '' !== $alert['borrowed_to'] ? $alert['borrowed_to'] : '—' ),
 				esc_html( '' !== $alert['date'] ? $alert['date'] : '—' ),
-				$this->status_badge( $alert['status'] )
+				$this->status_badge( $alert['status'] ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped fragment, see status_badge().
 			);
 		}
 
@@ -164,6 +173,8 @@ final class DashboardPage implements Hookable {
 
 	/**
 	 * Build a status badge for one borrow_alerts() row.
+	 *
+	 * @param string $status Alert status: "overdue", "lost", or "reminder".
 	 */
 	private function status_badge( string $status ): string {
 		$labels = array(
@@ -182,6 +193,9 @@ final class DashboardPage implements Hookable {
 	/**
 	 * Render a single chart card: a title plus the canvas Chart.js will
 	 * render into.
+	 *
+	 * @param string $canvas_id DOM id for the <canvas> element.
+	 * @param string $title     Chart card title.
 	 */
 	private function render_chart_card( string $canvas_id, string $title ): void {
 		printf(
@@ -193,6 +207,9 @@ final class DashboardPage implements Hookable {
 
 	/**
 	 * Render a single quick-link list item.
+	 *
+	 * @param string $label Link text.
+	 * @param string $url   Link URL.
 	 */
 	private function render_link( string $label, string $url ): void {
 		printf(

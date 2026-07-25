@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Taxonomies;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Hierarchical (category-style) curated collection classification, e.g.
  * "Rare Books" > "First Editions".

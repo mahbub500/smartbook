@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\MetaBoxes;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\Core\Contracts\Hookable;
 use SmartBook\PostTypes\BookPostType;
 use WP_Post;
@@ -145,16 +149,23 @@ final class BookDetailsMetaBox implements Hookable {
 	 */
 	private function save_field( int $post_id, string $key, array $field ): void {
 		// Checkboxes send no value at all when unchecked, unlike every
-		// other input type, so they need their own presence check.
+		// other input type, so they need their own presence check. The
+		// nonce and capability check already happened in can_save() before
+		// save() ever calls this method, and BookFields::sanitize()
+		// dispatches to the correct sanitizer per field type -- neither is
+		// visible to the sniff's static, single-method analysis.
 		if ( 'checkbox' === $field['type'] ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in can_save(), see save().
 			update_post_meta( $post_id, $key, BookFields::sanitize( $key, isset( $_POST[ $key ] ) ) );
 			return;
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in can_save(), see save().
 		if ( ! isset( $_POST[ $key ] ) ) {
 			return;
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in can_save(); value is sanitized immediately below via BookFields::sanitize().
 		update_post_meta( $post_id, $key, BookFields::sanitize( $key, wp_unslash( $_POST[ $key ] ) ) );
 	}
 
@@ -217,7 +228,7 @@ final class BookDetailsMetaBox implements Hookable {
 					'<input type="number" id="%1$s" name="%1$s" value="%2$s" class="regular-text" %3$s />',
 					esc_attr( $id ),
 					esc_attr( (string) $value ),
-					$this->numeric_attributes( $field )
+					$this->numeric_attributes( $field ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped fragment, see numeric_attributes().
 				);
 				break;
 
@@ -274,19 +285,19 @@ final class BookDetailsMetaBox implements Hookable {
 				'title'  => __( 'Identification', 'smartbook' ),
 				'fields' => array( 'sb_isbn', 'sb_isbn13', 'sb_barcode', 'sb_pages', 'sb_edition', 'sb_language', 'sb_format' ),
 			),
-			'condition'       => array(
+			'condition'      => array(
 				'title'  => __( 'Condition & Value', 'smartbook' ),
 				'fields' => array( 'sb_condition', 'sb_price', 'sb_purchase_date' ),
 			),
-			'reading'         => array(
+			'reading'        => array(
 				'title'  => __( 'Reading Progress', 'smartbook' ),
 				'fields' => array( 'sb_status', 'sb_progress', 'sb_rating', 'sb_favorite', 'sb_wishlist' ),
 			),
-			'borrow'          => array(
+			'borrow'         => array(
 				'title'  => __( 'Borrow Management', 'smartbook' ),
 				'fields' => array( 'sb_borrowed', 'sb_borrowed_to', 'sb_borrow_date', 'sb_return_date', 'sb_reminder', 'sb_returned', 'sb_lost' ),
 			),
-			'notes'           => array(
+			'notes'          => array(
 				'title'  => __( 'Notes', 'smartbook' ),
 				'fields' => array( 'sb_notes', 'sb_summary' ),
 			),

@@ -34,5 +34,22 @@
                 <element value="SmartBook"/>
             </property>
         </properties>
+        <!--
+        WPCS requires a configured prefix to be at least 4 characters to
+        count as a match (raised from 3 in WPCS 3.2.0); "sb"/"SB"/"Sb" are
+        2 characters, so every sb_-prefixed global (constants, functions,
+        hooks, variables) is flagged as both "prefix too short" and,
+        because the short prefix isn't recognised as a match, also as
+        "not prefixed at all". The sb_ prefix is already used throughout
+        this plugin's public surface (post type, meta keys, capabilities,
+        REST base, hook names) and in already-deployed installs; renaming
+        it now would be a breaking change for every site running the
+        plugin, which is out of proportion to a naming-convention nit.
+        -->
+        <exclude name="WordPress.NamingConventions.PrefixAllGlobals.ShortPrefixPassed"/>
+        <exclude name="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound"/>
+        <exclude name="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound"/>
+        <exclude name="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound"/>
+        <exclude name="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound"/>
     </rule>
 </ruleset>

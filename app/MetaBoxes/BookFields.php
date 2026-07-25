@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\MetaBoxes;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use DateTimeImmutable;
 
 /**
@@ -194,6 +198,7 @@ final class BookFields {
 	 * Keep only a value that matches one of a select field's known
 	 * option keys; anything else is discarded.
 	 *
+	 * @param string                $value   Value to validate.
 	 * @param array<string, string> $options Allowed option value => label pairs.
 	 */
 	private static function sanitize_choice( string $value, array $options ): string {
@@ -223,6 +228,8 @@ final class BookFields {
 	/**
 	 * Keep only a strict "Y-m-d" date string; anything else is discarded
 	 * rather than stored malformed.
+	 *
+	 * @param string $raw Raw value.
 	 */
 	private static function sanitize_date( string $raw ): string {
 		$raw = sanitize_text_field( $raw );
@@ -243,6 +250,8 @@ final class BookFields {
 	/**
 	 * Normalize any truthy representation ("1", "true", "yes", "on", or
 	 * an actual boolean) to "1", everything else to an empty string.
+	 *
+	 * @param mixed $raw Raw value.
 	 */
 	private static function sanitize_checkbox( mixed $raw ): string {
 		if ( is_bool( $raw ) ) {

@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Core\Container;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use Closure;
 use ReflectionClass;
 use ReflectionException;
@@ -44,9 +48,12 @@ final class Container implements ContainerInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string         $abstract_id Identifier to bind (usually a class or interface name).
+	 * @param Closure|string $concrete    Factory closure or a class name to instantiate.
 	 */
-	public function bind( string $abstract, Closure|string $concrete ): void {
-		$this->bindings[ $abstract ] = array(
+	public function bind( string $abstract_id, Closure|string $concrete ): void {
+		$this->bindings[ $abstract_id ] = array(
 			'concrete' => $concrete,
 			'shared'   => false,
 		);
@@ -54,9 +61,12 @@ final class Container implements ContainerInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string         $abstract_id Identifier to bind (usually a class or interface name).
+	 * @param Closure|string $concrete    Factory closure or a class name to instantiate.
 	 */
-	public function singleton( string $abstract, Closure|string $concrete ): void {
-		$this->bindings[ $abstract ] = array(
+	public function singleton( string $abstract_id, Closure|string $concrete ): void {
+		$this->bindings[ $abstract_id ] = array(
 			'concrete' => $concrete,
 			'shared'   => true,
 		);
@@ -64,29 +74,38 @@ final class Container implements ContainerInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string $abstract_id Identifier to bind.
+	 * @param object $instance    Fully constructed instance.
 	 */
-	public function instance( string $abstract, object $instance ): void {
-		$this->instances[ $abstract ] = $instance;
+	public function instance( string $abstract_id, object $instance ): void {
+		$this->instances[ $abstract_id ] = $instance;
 	}
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string               $abstract_id Identifier to resolve.
+	 * @param array<string, mixed> $parameters  Explicit constructor parameters, keyed by name.
+	 *
+	 * @throws NotFoundException When no binding or class exists for the identifier.
 	 */
-	public function make( string $abstract, array $parameters = array() ): mixed {
-		if ( isset( $this->instances[ $abstract ] ) ) {
-			return $this->instances[ $abstract ];
+	public function make( string $abstract_id, array $parameters = array() ): mixed {
+		if ( isset( $this->instances[ $abstract_id ] ) ) {
+			return $this->instances[ $abstract_id ];
 		}
 
-		$binding = $this->bindings[ $abstract ] ?? null;
+		$binding = $this->bindings[ $abstract_id ] ?? null;
 
 		if ( null === $binding ) {
-			if ( ! class_exists( $abstract ) ) {
+			if ( ! class_exists( $abstract_id ) ) {
 				throw new NotFoundException(
-					sprintf( 'No binding or class found for "%s".', $abstract )
+					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- developer-facing exception message, escaped via esc_html() where a boot failure is displayed (see smartbook.php), not echoed here.
+					sprintf( 'No binding or class found for "%s".', $abstract_id )
 				);
 			}
 
-			return $this->build( $abstract, $parameters );
+			return $this->build( $abstract_id, $parameters );
 		}
 
 		$concrete = $binding['concrete'];
@@ -96,7 +115,7 @@ final class Container implements ContainerInterface {
 			: $this->build( $concrete, $parameters );
 
 		if ( $binding['shared'] ) {
-			$this->instances[ $abstract ] = $object;
+			$this->instances[ $abstract_id ] = $object;
 		}
 
 		return $object;
@@ -104,6 +123,8 @@ final class Container implements ContainerInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string $id Identifier to resolve.
 	 */
 	public function get( string $id ): mixed {
 		return $this->make( $id );
@@ -111,6 +132,8 @@ final class Container implements ContainerInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string $id Identifier to check.
 	 */
 	public function has( string $id ): bool {
 		return isset( $this->instances[ $id ] )
@@ -121,32 +144,36 @@ final class Container implements ContainerInterface {
 	/**
 	 * Instantiate a class, autowiring its constructor dependencies.
 	 *
-	 * @param string               $class      Fully qualified class name.
+	 * @param string               $class_name      Fully qualified class name.
 	 * @param array<string, mixed> $parameters Explicit constructor parameters, keyed by name.
 	 *
 	 * @return object
+	 *
+	 * @throws ContainerException When the class cannot be reflected, is not instantiable, or a constructor parameter cannot be resolved.
 	 */
-	private function build( string $class, array $parameters ): object {
+	private function build( string $class_name, array $parameters ): object {
 		try {
-			$reflection = new ReflectionClass( $class );
+			$reflection = new ReflectionClass( $class_name );
 		} catch ( ReflectionException $exception ) {
 			throw new ContainerException(
-				sprintf( 'Class "%s" does not exist.', $class ),
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- developer-facing exception message, escaped via esc_html() where a boot failure is displayed (see smartbook.php), not echoed here.
+				sprintf( 'Class "%s" does not exist.', $class_name ),
 				0,
-				$exception
+				$exception // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- previous-exception constructor argument, not output.
 			);
 		}
 
 		if ( ! $reflection->isInstantiable() ) {
 			throw new ContainerException(
-				sprintf( 'Class "%s" is not instantiable.', $class )
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- developer-facing exception message, escaped via esc_html() where a boot failure is displayed (see smartbook.php), not echoed here.
+				sprintf( 'Class "%s" is not instantiable.', $class_name )
 			);
 		}
 
 		$constructor = $reflection->getConstructor();
 
 		if ( null === $constructor ) {
-			return new $class();
+			return new $class_name();
 		}
 
 		$dependencies = array();
@@ -174,8 +201,8 @@ final class Container implements ContainerInterface {
 			throw new ContainerException(
 				sprintf(
 					'Cannot resolve parameter "$%s" for class "%s".',
-					$name,
-					$class
+					$name, // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- developer-facing exception message, escaped via esc_html() where a boot failure is displayed (see smartbook.php), not echoed here.
+					$class_name // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- same as above.
 				)
 			);
 		}

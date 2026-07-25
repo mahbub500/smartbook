@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Core;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\PostTypes\BookPostType;
 use SmartBook\Taxonomies\TaxonomyServiceProvider;
 

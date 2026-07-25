@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Admin;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\Admin\Pages\BarcodeLabelsPage;
 use SmartBook\Admin\Pages\BooksPage;
 use SmartBook\Admin\Pages\DashboardPage;
@@ -42,6 +46,8 @@ final class AdminMenu implements Hookable {
 	public const PARENT_SLUG = 'sb_dashboard';
 
 	/**
+	 * Constructor.
+	 *
 	 * @param DashboardPage     $dashboard      Dashboard page renderer.
 	 * @param BooksPage         $books          Books list page renderer.
 	 * @param StatisticsPage    $statistics     Statistics page renderer.
@@ -189,15 +195,20 @@ final class AdminMenu implements Hookable {
 	}
 
 	/**
-	 * Build a base64-encoded SVG data URI for the top-level menu icon,
+	 * Build a URL-encoded SVG data URI for the top-level menu icon,
 	 * following the WordPress convention of a solid, single-colour glyph
 	 * that the admin CSS recolours to match the current colour scheme.
+	 *
+	 * URL-encoding (rather than base64) keeps the SVG markup readable in
+	 * the source and avoids base64_encode(), which WordPress.org's Plugin
+	 * Check flags as a possible code-obfuscation pattern even when, as
+	 * here, it is only ever applied to this fixed, static icon markup.
 	 */
 	private function icon(): string {
 		$svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="black">'
 			. '<path d="M10 3C8.35 1.9 6.02 1.5 4 1.5A1.5 1.5 0 0 0 2.5 3v12A1.5 1.5 0 0 0 4 16.5c1.86 0 3.98.36 5.55 1.34.14.09.32.14.45.14s.31-.05.45-.14C12.02 16.86 14.14 16.5 16 16.5a1.5 1.5 0 0 0 1.5-1.5V3A1.5 1.5 0 0 0 16 1.5c-2.02 0-4.35.4-6 1.5Zm-.75 12.1c-1.6-.75-3.55-1.1-5.25-1.1a.25.25 0 0 1-.25-.25V3a.25.25 0 0 1 .25-.25c1.7 0 3.65.35 5.25 1.32V15.1Zm1.5-10.03c1.6-.97 3.55-1.32 5.25-1.32.14 0 .25.11.25.25v11.75a.25.25 0 0 1-.25.25c-1.7 0-3.65.35-5.25 1.1V5.07Z"/>'
 			. '</svg>';
 
-		return 'data:image/svg+xml;base64,' . base64_encode( $svg );
+		return 'data:image/svg+xml;charset=utf-8,' . rawurlencode( $svg );
 	}
 }

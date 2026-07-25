@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Taxonomies;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Flat (tag-style) list of physical or virtual shelf locations. Not
  * hierarchical: shelves are treated as simple location codes.

@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\MetaBoxes;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\Core\Contracts\Hookable;
 use SmartBook\PostTypes\BookPostType;
 use SmartBook\Services\QrCodeManager;
@@ -31,6 +35,8 @@ final class QrCodeMetaBox implements Hookable {
 	private const BOX_ID = 'sb_qr_code';
 
 	/**
+	 * Constructor.
+	 *
 	 * @param QrCodeManager $manager QR code storage/lifecycle manager.
 	 */
 	public function __construct( private readonly QrCodeManager $manager ) {
@@ -101,6 +107,8 @@ final class QrCodeMetaBox implements Hookable {
 
 	/**
 	 * Nonce-protected admin-post.php URL for the manual regenerate action.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function regenerate_url( int $post_id ): string {
 		return wp_nonce_url(
@@ -117,6 +125,8 @@ final class QrCodeMetaBox implements Hookable {
 
 	/**
 	 * URL to this book's single-label print sheet.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function print_label_url( int $post_id ): string {
 		return add_query_arg(

@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Core\Contracts;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Implemented by any class that attaches its own WordPress actions or
  * filters. Standardising on a single register_hooks() entry point lets

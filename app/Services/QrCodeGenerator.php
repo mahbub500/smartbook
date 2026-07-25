@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Services;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use chillerlan\QRCode\Common\EccLevel;
 use chillerlan\QRCode\Output\QRCodeOutputException;
 use chillerlan\QRCode\Output\QRMarkupSVG;
@@ -27,6 +31,8 @@ final class QrCodeGenerator {
 	/**
 	 * Render a QR code encoding $data as raw SVG markup.
 	 *
+	 * @param string $data Data to encode.
+	 *
 	 * @throws QRCodeOutputException If rendering fails.
 	 */
 	public function generate_svg( string $data ): string {
@@ -38,6 +44,9 @@ final class QrCodeGenerator {
 	/**
 	 * Render a QR code encoding $data as raw SVG markup, also writing it
 	 * to $file_path.
+	 *
+	 * @param string $data      Data to encode.
+	 * @param string $file_path Absolute path to write the SVG file to.
 	 *
 	 * @throws QRCodeOutputException If rendering or writing the file fails.
 	 */

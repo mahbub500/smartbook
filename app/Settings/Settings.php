@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Settings;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Thin repository around a single autoloaded option.
  *
@@ -80,13 +84,19 @@ final class Settings {
 
 	/**
 	 * Read a single setting.
+	 *
+	 * @param string $key           Setting key.
+	 * @param mixed  $fallback_value Value to return when the key isn't set.
 	 */
-	public function get( string $key, mixed $default = null ): mixed {
-		return $this->values[ $key ] ?? $default;
+	public function get( string $key, mixed $fallback_value = null ): mixed {
+		return $this->values[ $key ] ?? $fallback_value;
 	}
 
 	/**
 	 * Write a single setting and persist it immediately.
+	 *
+	 * @param string $key   Setting key.
+	 * @param mixed  $value Value to store.
 	 */
 	public function set( string $key, mixed $value ): void {
 		$this->values[ $key ] = $value;

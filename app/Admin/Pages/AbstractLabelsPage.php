@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Admin\Pages;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\PostTypes\BookPostType;
 use SmartBook\Taxonomies\ShelfTaxonomy;
 use WP_Post;
@@ -43,11 +47,15 @@ abstract class AbstractLabelsPage {
 
 	/**
 	 * Make sure a book's label image exists, generating it if not.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	abstract protected function ensure_asset( int $post_id ): void;
 
 	/**
 	 * Public URL of a book's label image, or '' if none exists.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	abstract protected function image_url( int $post_id ): string;
 
@@ -66,6 +74,11 @@ abstract class AbstractLabelsPage {
 		}
 
 		if ( isset( $_GET['sb_print_labels'] ) && '1' === $_GET['sb_print_labels'] ) {
+			// This GET request has the side effect of generating a label
+			// image on disk (ensure_asset()), so it still needs a nonce
+			// even though nothing is written to the database.
+			check_admin_referer( self::print_nonce_action( $this->page_slug() ) );
+
 			$this->render_print_sheet( $this->requested_ids() );
 
 			return;
@@ -75,10 +88,24 @@ abstract class AbstractLabelsPage {
 	}
 
 	/**
+	 * Nonce action shared by the selection form and every generated
+	 * print-sheet link for a given label page slug. Public so
+	 * Admin\Tables\BooksListTable and Admin\Pages\BooksPage can build
+	 * matching nonce-protected URLs without needing a page instance.
+	 *
+	 * @param string $page_slug Admin page slug.
+	 */
+	public static function print_nonce_action( string $page_slug ): string {
+		return 'sb_print_labels_' . $page_slug;
+	}
+
+	/**
 	 * Extra markup (already escaped) rendered on a label after the
 	 * title, before the shelf line. Empty by default.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
-	protected function extra_label_content( int $post_id ): string {
+	protected function extra_label_content( int $post_id ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- part of the overridable contract; unused only in this no-op default, see BarcodeLabelsPage's override.
 		return '';
 	}
 
@@ -101,6 +128,7 @@ abstract class AbstractLabelsPage {
 		}
 
 		printf( '<form method="get" action="%s">', esc_url( admin_url( 'admin.php' ) ) );
+		wp_nonce_field( self::print_nonce_action( $this->page_slug() ) );
 		printf( '<input type="hidden" name="page" value="%s" />', esc_attr( $this->page_slug() ) );
 		echo '<input type="hidden" name="sb_print_labels" value="1" />';
 
@@ -114,7 +142,7 @@ abstract class AbstractLabelsPage {
 		foreach ( $books as $book ) {
 			printf(
 				'<li><label><input type="checkbox" name="sb_book_id[]" value="%1$d" class="sb-label-select-list__checkbox" %2$s /> %3$s</label></li>',
-				$book->ID,
+				$book->ID, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- the "%1$d" specifier already coerces to an integer, no HTML can pass through.
 				checked( array() === $preselected || in_array( $book->ID, $preselected, true ), true, false ),
 				esc_html( get_the_title( $book ) )
 			);
@@ -179,6 +207,8 @@ abstract class AbstractLabelsPage {
 
 	/**
 	 * Render a single label: image, title, any extra content, and shelf.
+	 *
+	 * @param WP_Post $book Book post.
 	 */
 	private function render_label( WP_Post $book ): void {
 		$image_url = $this->image_url( $book->ID );
@@ -207,6 +237,8 @@ abstract class AbstractLabelsPage {
 
 	/**
 	 * Comma-separated shelf term names for a book.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function shelf_names( int $post_id ): string {
 		$terms = get_the_terms( $post_id, ShelfTaxonomy::SLUG );
@@ -224,10 +256,15 @@ abstract class AbstractLabelsPage {
 	 * @return int[]
 	 */
 	private function requested_ids(): array {
+		// Only parses which IDs were pre-selected/requested; render()
+		// verifies the nonce itself before this list is ever used to
+		// generate or print anything, see print_nonce_action().
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( ! isset( $_GET['sb_book_id'] ) ) {
 			return array();
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- every element is absint()'d below.
 		$raw = wp_unslash( $_GET['sb_book_id'] );
 		$raw = is_array( $raw ) ? $raw : array( $raw );
 
@@ -241,12 +278,15 @@ abstract class AbstractLabelsPage {
 	 */
 	private function all_books(): array {
 		return get_posts(
-			array(
-				'post_type'      => BookPostType::SLUG,
-				'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
-				'posts_per_page' => -1,
-				'orderby'        => 'title',
-				'order'          => 'ASC',
+			array_merge(
+				array(
+					'post_type'      => BookPostType::SLUG,
+					'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
+					'posts_per_page' => -1,
+					'orderby'        => 'title',
+					'order'          => 'ASC',
+				),
+				BookPostType::author_scope_args()
 			)
 		);
 	}
@@ -260,12 +300,15 @@ abstract class AbstractLabelsPage {
 	 */
 	private function books_by_ids( array $ids ): array {
 		return get_posts(
-			array(
-				'post_type'      => BookPostType::SLUG,
-				'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
-				'posts_per_page' => -1,
-				'post__in'       => $ids,
-				'orderby'        => 'post__in',
+			array_merge(
+				array(
+					'post_type'      => BookPostType::SLUG,
+					'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
+					'posts_per_page' => -1,
+					'post__in'       => $ids,
+					'orderby'        => 'post__in',
+				),
+				BookPostType::author_scope_args()
 			)
 		);
 	}

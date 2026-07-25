@@ -102,6 +102,8 @@ final class Uninstaller {
 
 	/**
 	 * Recursively remove a directory via WP_Filesystem, if it exists.
+	 *
+	 * @param string $directory Absolute path to the directory to remove.
 	 */
 	private static function delete_directory( string $directory ): void {
 		if ( ! is_dir( $directory ) ) {

@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Assets;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\Core\Contracts\Hookable;
 
 use function sb_asset_url;

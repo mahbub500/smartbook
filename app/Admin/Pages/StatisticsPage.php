@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Admin\Pages;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\PostTypes\BookPostType;
 use SmartBook\Taxonomies\TaxonomyServiceProvider;
 
@@ -41,7 +45,7 @@ final class StatisticsPage {
 	/**
 	 * Render a simple two-column, striped admin table.
 	 *
-	 * @param array{0: string, 1: string}         $headers Column headings.
+	 * @param array{0: string, 1: string}                  $headers Column headings.
 	 * @param array<int, array{label: string, count: int}> $rows Rows to render.
 	 */
 	private function render_table( array $headers, array $rows ): void {
@@ -101,7 +105,12 @@ final class StatisticsPage {
 
 		foreach ( TaxonomyServiceProvider::TAXONOMIES as $taxonomy_class ) {
 			$taxonomy = new $taxonomy_class();
-			$count    = wp_count_terms( array( 'taxonomy' => $taxonomy->get_slug(), 'hide_empty' => false ) );
+			$count    = wp_count_terms(
+				array(
+					'taxonomy'   => $taxonomy->get_slug(),
+					'hide_empty' => false,
+				)
+			);
 
 			$rows[] = array(
 				'label' => $taxonomy->get_plural_label(),

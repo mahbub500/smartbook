@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Core;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\Core\Contracts\ContainerInterface;
 use SmartBook\Core\Contracts\ServiceProviderInterface;
 
@@ -24,6 +28,8 @@ abstract class AbstractServiceProvider implements ServiceProviderInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param ContainerInterface $container Application service container.
 	 */
 	public function register( ContainerInterface $container ): void {
 		// Intentionally empty; override to bind services.
@@ -31,6 +37,8 @@ abstract class AbstractServiceProvider implements ServiceProviderInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param ContainerInterface $container Application service container.
 	 */
 	public function boot( ContainerInterface $container ): void {
 		// Intentionally empty; override to attach WordPress hooks.

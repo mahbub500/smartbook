@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Admin\Pages;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\Core\Contracts\Hookable;
 use SmartBook\Settings\Settings;
 
@@ -32,6 +36,8 @@ final class SettingsPage implements Hookable {
 	private const SECTION_ID = 'sb_settings_general';
 
 	/**
+	 * Constructor.
+	 *
 	 * @param Settings $settings Settings repository, used to read current values for the form.
 	 */
 	public function __construct( private readonly Settings $settings ) {

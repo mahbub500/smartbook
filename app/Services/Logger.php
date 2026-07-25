@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Services;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use Stringable;
 
 /**
@@ -36,10 +40,14 @@ final class Logger implements LoggerInterface {
 
 	/**
 	 * Whether the directory has already been prepared this request.
+	 *
+	 * @var bool
 	 */
 	private bool $directory_ready = false;
 
 	/**
+	 * Create the logger.
+	 *
 	 * @param string $directory Absolute path to the directory log files are written into.
 	 * @param bool   $enabled   Whether logging is active at all.
 	 * @param string $threshold Minimum severity keyword that gets written; anything less severe is discarded.
@@ -53,6 +61,8 @@ final class Logger implements LoggerInterface {
 
 	/**
 	 * Enable or disable logging at runtime.
+	 *
+	 * @param bool $enabled Whether logging is active at all.
 	 */
 	public function set_enabled( bool $enabled ): void {
 		$this->enabled = $enabled;
@@ -60,6 +70,8 @@ final class Logger implements LoggerInterface {
 
 	/**
 	 * Change the minimum severity that gets written.
+	 *
+	 * @param string $threshold Minimum severity keyword that gets written; anything less severe is discarded.
 	 */
 	public function set_threshold( string $threshold ): void {
 		if ( isset( self::LEVELS[ $threshold ] ) ) {
@@ -69,6 +81,9 @@ final class Logger implements LoggerInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string               $message Log message.
+	 * @param array<string, mixed> $context Contextual values.
 	 */
 	public function emergency( string $message, array $context = array() ): void {
 		$this->log( 'emergency', $message, $context );
@@ -76,6 +91,9 @@ final class Logger implements LoggerInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string               $message Log message.
+	 * @param array<string, mixed> $context Contextual values.
 	 */
 	public function alert( string $message, array $context = array() ): void {
 		$this->log( 'alert', $message, $context );
@@ -83,6 +101,9 @@ final class Logger implements LoggerInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string               $message Log message.
+	 * @param array<string, mixed> $context Contextual values.
 	 */
 	public function critical( string $message, array $context = array() ): void {
 		$this->log( 'critical', $message, $context );
@@ -90,6 +111,9 @@ final class Logger implements LoggerInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string               $message Log message.
+	 * @param array<string, mixed> $context Contextual values.
 	 */
 	public function error( string $message, array $context = array() ): void {
 		$this->log( 'error', $message, $context );
@@ -97,6 +121,9 @@ final class Logger implements LoggerInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string               $message Log message.
+	 * @param array<string, mixed> $context Contextual values.
 	 */
 	public function warning( string $message, array $context = array() ): void {
 		$this->log( 'warning', $message, $context );
@@ -104,6 +131,9 @@ final class Logger implements LoggerInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string               $message Log message.
+	 * @param array<string, mixed> $context Contextual values.
 	 */
 	public function notice( string $message, array $context = array() ): void {
 		$this->log( 'notice', $message, $context );
@@ -111,6 +141,9 @@ final class Logger implements LoggerInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string               $message Log message.
+	 * @param array<string, mixed> $context Contextual values.
 	 */
 	public function info( string $message, array $context = array() ): void {
 		$this->log( 'info', $message, $context );
@@ -118,6 +151,9 @@ final class Logger implements LoggerInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string               $message Log message.
+	 * @param array<string, mixed> $context Contextual values.
 	 */
 	public function debug( string $message, array $context = array() ): void {
 		$this->log( 'debug', $message, $context );
@@ -125,6 +161,10 @@ final class Logger implements LoggerInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string               $level   One of the RFC 5424 severity keywords.
+	 * @param string               $message Log message.
+	 * @param array<string, mixed> $context Contextual values.
 	 */
 	public function log( string $level, string $message, array $context = array() ): void {
 		if ( ! $this->enabled ) {
@@ -144,7 +184,10 @@ final class Logger implements LoggerInterface {
 		$line = $this->format( $level, $message, $context );
 		$file = trailingslashit( $this->directory ) . 'sb-' . gmdate( 'Y-m-d' ) . '.log';
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		// Deliberately silenced: per the class docblock, a logging failure
+		// (e.g. a full disk or a permissions problem) must never surface
+		// as a warning on the page that triggered the log call.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.PHP.NoSilencedErrors.Discouraged
 		@file_put_contents( $file, $line, FILE_APPEND | LOCK_EX );
 	}
 
@@ -182,6 +225,8 @@ final class Logger implements LoggerInterface {
 
 	/**
 	 * Render an arbitrary context value as a log-safe string.
+	 *
+	 * @param mixed $value Context value to render.
 	 */
 	private function stringify( mixed $value ): string {
 		if ( $value instanceof Stringable || is_scalar( $value ) ) {
@@ -213,14 +258,16 @@ final class Logger implements LoggerInterface {
 		$index_file = trailingslashit( $this->directory ) . 'index.php';
 
 		if ( ! file_exists( $index_file ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			// Best-effort directory-listing guard; a failure here must not
+			// block logging itself, see log()'s own suppression comment.
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.PHP.NoSilencedErrors.Discouraged
 			@file_put_contents( $index_file, "<?php\n// Silence is golden.\n" );
 		}
 
 		$htaccess_file = trailingslashit( $this->directory ) . '.htaccess';
 
 		if ( ! file_exists( $htaccess_file ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.PHP.NoSilencedErrors.Discouraged
 			@file_put_contents( $htaccess_file, "Require all denied\n" );
 		}
 

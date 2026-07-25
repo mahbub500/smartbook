@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Taxonomies;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Hierarchical (category-style) genre classification, e.g.
  * Fiction > Fantasy > Epic Fantasy.

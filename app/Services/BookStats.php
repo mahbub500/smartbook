@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Services;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use DateTimeImmutable;
 use SmartBook\PostTypes\BookPostType;
 use SmartBook\Taxonomies\AuthorTaxonomy;
@@ -40,12 +44,14 @@ final class BookStats {
 
 	/**
 	 * Number of books whose "sb_status" meta equals the given value.
+	 *
+	 * @param string $status Status value to match.
 	 */
 	public function count_by_status( string $status ): int {
 		return count(
 			array_filter(
 				$this->posts(),
-				static fn ( WP_Post $post ): bool => $status === (string) get_post_meta( $post->ID, 'sb_status', true )
+				static fn ( WP_Post $post ): bool => (string) get_post_meta( $post->ID, 'sb_status', true ) === $status
 			)
 		);
 	}
@@ -53,6 +59,8 @@ final class BookStats {
 	/**
 	 * Number of books whose boolean meta flag (e.g. "sb_favorite",
 	 * "sb_wishlist", "sb_borrowed") is set.
+	 *
+	 * @param string $meta_key Post meta key to check.
 	 */
 	public function count_by_flag( string $meta_key ): int {
 		return count(
@@ -123,26 +131,33 @@ final class BookStats {
 			}
 		}
 
-		usort( $alerts, static function ( array $a, array $b ): int {
-			$rank      = array(
-				'overdue'  => 0,
-				'lost'     => 1,
-				'reminder' => 2,
-			);
-			$rank_diff = $rank[ $a['status'] ] <=> $rank[ $b['status'] ];
+		usort(
+			$alerts,
+			static function ( array $a, array $b ): int {
+				$rank      = array(
+					'overdue'  => 0,
+					'lost'     => 1,
+					'reminder' => 2,
+				);
+				$rank_diff = $rank[ $a['status'] ] <=> $rank[ $b['status'] ];
 
-			if ( 0 !== $rank_diff ) {
-				return $rank_diff;
+				if ( 0 !== $rank_diff ) {
+					return $rank_diff;
+				}
+
+				return strcmp( $a['date'], $b['date'] );
 			}
-
-			return strcmp( $a['date'], $b['date'] );
-		} );
+		);
 
 		return $alerts;
 	}
 
 	/**
 	 * Build one borrow_alerts() row.
+	 *
+	 * @param WP_Post $post   Book post.
+	 * @param string  $status Alert status: "overdue", "lost", or "reminder".
+	 * @param string  $date   Relevant date for the alert.
 	 *
 	 * @return array{post_id: int, title: string, borrowed_to: string, date: string, status: string}
 	 */
@@ -233,6 +248,8 @@ final class BookStats {
 
 	/**
 	 * Term name => book count for a taxonomy, top ten by count.
+	 *
+	 * @param string $taxonomy Taxonomy slug.
 	 *
 	 * @return array<string, int>
 	 */

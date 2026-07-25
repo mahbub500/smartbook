@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Frontend;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\Core\Contracts\Hookable;
 use SmartBook\MetaBoxes\BookFields;
 use SmartBook\PostTypes\BookPostType;
@@ -31,6 +35,8 @@ final class BookContentDisplay implements Hookable {
 	/**
 	 * Append the details panel to the post content on a book's own
 	 * singular page, in the main loop only.
+	 *
+	 * @param string $content Original post content.
 	 */
 	public function append_panel( string $content ): string {
 		if ( ! is_singular( BookPostType::SLUG ) || ! in_the_loop() || ! is_main_query() ) {
@@ -42,6 +48,8 @@ final class BookContentDisplay implements Hookable {
 
 	/**
 	 * Build the panel markup for one book.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function render_panel( int $post_id ): string {
 		$rows  = $this->render_row( __( 'Shelf', 'smartbook' ), $this->shelf( $post_id ) );
@@ -68,6 +76,7 @@ final class BookContentDisplay implements Hookable {
 	/**
 	 * One label/value row, omitted entirely when the value is empty.
 	 *
+	 * @param string $label      Row label text.
 	 * @param string $value_html Already-escaped value markup.
 	 */
 	private function render_row( string $label, string $value_html ): string {
@@ -84,6 +93,8 @@ final class BookContentDisplay implements Hookable {
 
 	/**
 	 * Comma-separated shelf term names, already escaped.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function shelf( int $post_id ): string {
 		$terms = get_the_terms( $post_id, ShelfTaxonomy::SLUG );
@@ -98,6 +109,8 @@ final class BookContentDisplay implements Hookable {
 	/**
 	 * Translated reading-status label, already escaped, reusing the same
 	 * option labels the edit-screen meta box uses.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function status_label( int $post_id ): string {
 		$status  = (string) get_post_meta( $post_id, 'sb_status', true );
@@ -108,6 +121,8 @@ final class BookContentDisplay implements Hookable {
 
 	/**
 	 * A visual progress bar plus percentage, already escaped.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function progress( int $post_id ): string {
 		$progress = max( 0, min( 100, (int) get_post_meta( $post_id, 'sb_progress', true ) ) );
@@ -124,6 +139,8 @@ final class BookContentDisplay implements Hookable {
 
 	/**
 	 * A star rating, already escaped.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function rating( int $post_id ): string {
 		$rating = max( 0, min( 5, (int) get_post_meta( $post_id, 'sb_rating', true ) ) );
