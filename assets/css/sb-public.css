@@ -10,6 +10,8 @@
 	--sb-color-text-muted: #646970;
 	--sb-color-primary: #2271b1;
 	--sb-color-star-filled: #dba617;
+	--sb-color-warning: #d63638;
+	--sb-color-success: #00a32a;
 }
 
 @media ( prefers-color-scheme: dark ) {
@@ -22,6 +24,8 @@
 		--sb-color-text-muted: #a7aaad;
 		--sb-color-primary: #72aee6;
 		--sb-color-star-filled: #f0c33c;
+		--sb-color-warning: #ff8085;
+		--sb-color-success: #68de7c;
 	}
 }
 
@@ -161,4 +165,165 @@
 	.sb-book-panel__row dt {
 		margin-top: 8px;
 	}
+}
+
+/* -------------------------------------------------------------------- */
+/* Book scan page (Frontend\BookScanPage), the full-page mobile view    */
+/* opened when a book's QR code is scanned                              */
+/* -------------------------------------------------------------------- */
+
+body.sb-scan-page {
+	margin: 0;
+	background: var( --sb-color-bg-subtle );
+	color: var( --sb-color-text );
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	-webkit-text-size-adjust: 100%;
+}
+
+.sb-scan {
+	box-sizing: border-box;
+	max-width: 480px;
+	margin: 0 auto;
+	padding: 16px 16px calc( 32px + env( safe-area-inset-bottom, 0px ) );
+}
+
+.sb-scan *,
+.sb-scan *::before,
+.sb-scan *::after {
+	box-sizing: inherit;
+}
+
+.sb-scan__notice {
+	margin: 0 0 16px;
+	padding: 12px 16px;
+	background: var( --sb-color-success );
+	color: #fff;
+	border-radius: 8px;
+	font-size: 0.9em;
+}
+
+.sb-scan__card {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	padding: 20px;
+	background: var( --sb-color-bg );
+	border: 1px solid var( --sb-color-border );
+	border-radius: 12px;
+	box-shadow: 0 1px 3px rgba( 0, 0, 0, 0.08 );
+}
+
+.sb-scan__cover {
+	align-self: center;
+	width: 100%;
+	max-width: 220px;
+	height: auto;
+	border-radius: 8px;
+}
+
+.sb-scan__cover--placeholder {
+	aspect-ratio: 2 / 3;
+	background: var( --sb-color-bg-subtle );
+	border: 1px dashed var( --sb-color-border );
+}
+
+.sb-scan__title {
+	margin: 0;
+	font-size: 1.4em;
+	text-align: center;
+}
+
+.sb-scan__row {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 8px 0;
+	border-top: 1px solid var( --sb-color-border );
+	font-size: 0.95em;
+}
+
+.sb-scan__row-label {
+	color: var( --sb-color-text-muted );
+	font-weight: 600;
+}
+
+.sb-scan__row-value {
+	text-align: right;
+}
+
+.sb-scan__section {
+	padding-top: 16px;
+	border-top: 1px solid var( --sb-color-border );
+}
+
+.sb-scan__section-title {
+	margin: 0 0 8px;
+	font-size: 1em;
+}
+
+.sb-scan__status {
+	margin: 0 0 12px;
+	font-weight: 600;
+}
+
+.sb-scan__status--available {
+	color: var( --sb-color-success );
+}
+
+.sb-scan__status--out {
+	color: var( --sb-color-warning );
+}
+
+.sb-scan__notes {
+	margin: 0;
+	white-space: pre-line;
+}
+
+.sb-scan__form {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.sb-scan__field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 0.9em;
+}
+
+.sb-scan__field span {
+	color: var( --sb-color-text-muted );
+	font-weight: 600;
+}
+
+.sb-scan__field input,
+.sb-scan__field select {
+	padding: 10px 12px;
+	font-size: 1em;
+	background: var( --sb-color-bg );
+	color: var( --sb-color-text );
+	border: 1px solid var( --sb-color-border );
+	border-radius: 8px;
+}
+
+.sb-scan__button {
+	appearance: none;
+	padding: 12px 16px;
+	background: var( --sb-color-primary );
+	color: #fff;
+	border: 0;
+	border-radius: 8px;
+	font-size: 1em;
+	font-weight: 600;
+	cursor: pointer;
+	min-height: 44px;
+}
+
+.sb-scan__button--secondary {
+	background: var( --sb-color-warning );
+}
+
+.sb-scan__button:active {
+	opacity: 0.85;
 }
