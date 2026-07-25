@@ -17,6 +17,7 @@ use SmartBook\Core\Contracts\ServiceProviderInterface;
 use SmartBook\PostTypes\PostTypeServiceProvider;
 use SmartBook\Services\LoggerServiceProvider;
 use SmartBook\Settings\SettingsServiceProvider;
+use SmartBook\Taxonomies\TaxonomyServiceProvider;
 
 /**
  * Owns the service container and orchestrates every module's service
@@ -46,6 +47,7 @@ final class Plugin {
 		SettingsServiceProvider::class,
 		AssetServiceProvider::class,
 		PostTypeServiceProvider::class,
+		TaxonomyServiceProvider::class,
 	);
 
 	/**

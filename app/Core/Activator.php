@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace SmartBook\Core;
 
 use SmartBook\PostTypes\BookPostType;
+use SmartBook\Taxonomies\TaxonomyServiceProvider;
 
 /**
  * Runs once when the plugin is activated.
@@ -43,11 +44,12 @@ final class Activator {
 		self::create_default_options();
 		self::maybe_upgrade();
 
-		// Post types are normally registered on the "init" hook, which has
-		// already fired by the time a fresh activation reaches this point.
-		// Register synchronously here so the rewrite rules generated below
-		// actually include them.
+		// Post types and taxonomies are normally registered on the "init"
+		// hook, which has already fired by the time a fresh activation
+		// reaches this point. Register synchronously here so the rewrite
+		// rules generated below actually include them.
 		( new BookPostType() )->register();
+		self::register_taxonomies();
 		self::grant_capabilities();
 
 		flush_rewrite_rules();
@@ -75,6 +77,15 @@ final class Activator {
 		if ( version_compare( $installed, SB_VERSION, '<' ) ) {
 			// Place versioned schema/data migrations here as the plugin evolves.
 			update_option( 'sb_db_version', SB_VERSION );
+		}
+	}
+
+	/**
+	 * Synchronously register every taxonomy the plugin defines.
+	 */
+	private static function register_taxonomies(): void {
+		foreach ( TaxonomyServiceProvider::TAXONOMIES as $taxonomy_class ) {
+			( new $taxonomy_class() )->register();
 		}
 	}
 
