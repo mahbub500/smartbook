@@ -272,7 +272,7 @@ final class BookDetailsMetaBox implements Hookable {
 		return array(
 			'identification' => array(
 				'title'  => __( 'Identification', 'smartbook' ),
-				'fields' => array( 'sb_isbn', 'sb_isbn13', 'sb_pages', 'sb_edition', 'sb_language', 'sb_format' ),
+				'fields' => array( 'sb_isbn', 'sb_isbn13', 'sb_barcode', 'sb_pages', 'sb_edition', 'sb_language', 'sb_format' ),
 			),
 			'condition'       => array(
 				'title'  => __( 'Condition & Value', 'smartbook' ),

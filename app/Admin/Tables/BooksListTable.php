@@ -86,9 +86,10 @@ final class BooksListTable extends WP_List_Table {
 		}
 
 		return array(
-			'trash'     => __( 'Move to Trash', 'smartbook' ),
-			'bulk_edit' => __( 'Bulk Edit', 'smartbook' ),
-			'print_qr'  => __( 'Print QR Labels', 'smartbook' ),
+			'trash'         => __( 'Move to Trash', 'smartbook' ),
+			'bulk_edit'     => __( 'Bulk Edit', 'smartbook' ),
+			'print_qr'      => __( 'Print QR Labels', 'smartbook' ),
+			'print_barcode' => __( 'Print Barcode Labels', 'smartbook' ),
 		);
 	}
 
@@ -373,8 +374,14 @@ final class BooksListTable extends WP_List_Table {
 
 		$links[] = sprintf(
 			'<a class="button button-small" href="%s">%s</a>',
-			esc_url( $this->print_label_url( $item->ID ) ),
-			esc_html__( 'Print Label', 'smartbook' )
+			esc_url( $this->print_label_url( 'sb_qr_labels', $item->ID ) ),
+			esc_html__( 'Print QR Label', 'smartbook' )
+		);
+
+		$links[] = sprintf(
+			'<a class="button button-small" href="%s">%s</a>',
+			esc_url( $this->print_label_url( 'sb_barcode_labels', $item->ID ) ),
+			esc_html__( 'Print Barcode Label', 'smartbook' )
 		);
 
 		if ( $is_trashed ) {
@@ -402,12 +409,14 @@ final class BooksListTable extends WP_List_Table {
 	}
 
 	/**
-	 * URL to this book's single-label print sheet.
+	 * URL to this book's single-label print sheet for a given label page.
+	 *
+	 * @param string $page_slug Either "sb_qr_labels" or "sb_barcode_labels".
 	 */
-	private function print_label_url( int $post_id ): string {
+	private function print_label_url( string $page_slug, int $post_id ): string {
 		return add_query_arg(
 			array(
-				'page'            => 'sb_qr_labels',
+				'page'            => $page_slug,
 				'sb_book_id'      => array( $post_id ),
 				'sb_print_labels' => '1',
 			),

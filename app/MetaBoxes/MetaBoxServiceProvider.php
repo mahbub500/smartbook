@@ -11,6 +11,7 @@ namespace SmartBook\MetaBoxes;
 
 use SmartBook\Core\AbstractServiceProvider;
 use SmartBook\Core\Contracts\ContainerInterface;
+use SmartBook\Services\BarcodeManager;
 use SmartBook\Services\QrCodeManager;
 
 /**
@@ -28,6 +29,11 @@ final class MetaBoxServiceProvider extends AbstractServiceProvider {
 			QrCodeMetaBox::class,
 			static fn ( ContainerInterface $container ): QrCodeMetaBox => new QrCodeMetaBox( $container->make( QrCodeManager::class ) )
 		);
+
+		$container->singleton(
+			BarcodeMetaBox::class,
+			static fn ( ContainerInterface $container ): BarcodeMetaBox => new BarcodeMetaBox( $container->make( BarcodeManager::class ) )
+		);
 	}
 
 	/**
@@ -36,5 +42,6 @@ final class MetaBoxServiceProvider extends AbstractServiceProvider {
 	public function boot( ContainerInterface $container ): void {
 		$container->make( BookDetailsMetaBox::class )->register_hooks();
 		$container->make( QrCodeMetaBox::class )->register_hooks();
+		$container->make( BarcodeMetaBox::class )->register_hooks();
 	}
 }

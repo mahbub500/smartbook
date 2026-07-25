@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace SmartBook\Admin;
 
+use SmartBook\Admin\Pages\BarcodeLabelsPage;
 use SmartBook\Admin\Pages\BooksPage;
 use SmartBook\Admin\Pages\DashboardPage;
 use SmartBook\Admin\Pages\ImportExportPage;
@@ -25,8 +26,8 @@ use SmartBook\Taxonomies\ShelfTaxonomy;
 /**
  * Registers the top-level "SmartBook" admin menu and its nine entries:
  * Dashboard, Books, Authors, Genres, Publishers, Shelves, Statistics,
- * Import Export, and Settings, plus a tenth, deliberately hidden
- * "QR Labels" page (see register()).
+ * Import Export, and Settings, plus two deliberately hidden label-print
+ * pages, "QR Labels" and "Barcode Labels" (see register()).
  *
  * BookPostType and the four linked taxonomies are registered with
  * show_in_menu => false, so WordPress does not also auto-add its own
@@ -41,12 +42,13 @@ final class AdminMenu implements Hookable {
 	public const PARENT_SLUG = 'sb_dashboard';
 
 	/**
-	 * @param DashboardPage    $dashboard     Dashboard page renderer.
-	 * @param BooksPage        $books         Books list page renderer.
-	 * @param StatisticsPage   $statistics    Statistics page renderer.
-	 * @param ImportExportPage $import_export Import/export page renderer.
-	 * @param QrLabelsPage     $qr_labels     QR label print page renderer.
-	 * @param SettingsPage     $settings      Settings page renderer.
+	 * @param DashboardPage     $dashboard      Dashboard page renderer.
+	 * @param BooksPage         $books          Books list page renderer.
+	 * @param StatisticsPage    $statistics     Statistics page renderer.
+	 * @param ImportExportPage  $import_export  Import/export page renderer.
+	 * @param QrLabelsPage      $qr_labels      QR label print page renderer.
+	 * @param BarcodeLabelsPage $barcode_labels Barcode label print page renderer.
+	 * @param SettingsPage      $settings       Settings page renderer.
 	 */
 	public function __construct(
 		private readonly DashboardPage $dashboard,
@@ -54,6 +56,7 @@ final class AdminMenu implements Hookable {
 		private readonly StatisticsPage $statistics,
 		private readonly ImportExportPage $import_export,
 		private readonly QrLabelsPage $qr_labels,
+		private readonly BarcodeLabelsPage $barcode_labels,
 		private readonly SettingsPage $settings
 	) {
 	}
@@ -156,11 +159,12 @@ final class AdminMenu implements Hookable {
 			array( $this->settings, 'render' )
 		);
 
-		// Registered so admin.php?page=sb_qr_labels routes and is
-		// capability-gated like any other page, then immediately hidden
-		// from the visible menu: it's reached via the books table's
-		// "Print QR Labels" bulk action, its per-row "Print Label" link,
-		// and the QR Code meta box, not via direct navigation.
+		// Registered so admin.php?page=sb_qr_labels (and sb_barcode_labels
+		// below) route and are capability-gated like any other page, then
+		// immediately hidden from the visible menu: both are reached via
+		// the books table's "Print ... Labels" bulk actions, their per-row
+		// "Print Label" links, and their respective meta boxes, not via
+		// direct navigation.
 		add_submenu_page(
 			self::PARENT_SLUG,
 			__( 'QR Labels', 'smartbook' ),
@@ -171,6 +175,17 @@ final class AdminMenu implements Hookable {
 		);
 
 		remove_submenu_page( self::PARENT_SLUG, 'sb_qr_labels' );
+
+		add_submenu_page(
+			self::PARENT_SLUG,
+			__( 'Barcode Labels', 'smartbook' ),
+			__( 'Barcode Labels', 'smartbook' ),
+			BookPostType::CAP_EDIT_BOOKS,
+			'sb_barcode_labels',
+			array( $this->barcode_labels, 'render' )
+		);
+
+		remove_submenu_page( self::PARENT_SLUG, 'sb_barcode_labels' );
 	}
 
 	/**

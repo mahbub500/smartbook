@@ -38,6 +38,11 @@ final class BookFields {
 				'type'        => 'text',
 				'description' => __( '13-character International Standard Book Number.', 'smartbook' ),
 			),
+			'sb_barcode'       => array(
+				'label'       => __( 'Barcode', 'smartbook' ),
+				'type'        => 'text',
+				'description' => __( 'Value encoded in this book\'s Code128 barcode. Leave blank to auto-assign one.', 'smartbook' ),
+			),
 			'sb_pages'         => array(
 				'label'        => __( 'Pages', 'smartbook' ),
 				'type'         => 'number',

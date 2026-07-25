@@ -34,7 +34,7 @@ final class Uninstaller {
 		self::delete_transients();
 		self::clear_scheduled_events();
 		self::revoke_capabilities();
-		self::delete_qr_code_directory();
+		self::delete_generated_asset_directories();
 
 		if ( is_multisite() ) {
 			self::uninstall_for_network();
@@ -91,12 +91,19 @@ final class Uninstaller {
 	}
 
 	/**
-	 * Remove the uploads/sb-qrcodes directory and every QR image in it,
-	 * for the current site.
+	 * Remove the uploads/sb-qrcodes and uploads/sb-barcodes directories
+	 * and every generated image in them, for the current site.
 	 */
-	private static function delete_qr_code_directory(): void {
-		$directory = trailingslashit( wp_upload_dir()['basedir'] ) . 'sb-qrcodes';
+	private static function delete_generated_asset_directories(): void {
+		foreach ( array( 'sb-qrcodes', 'sb-barcodes' ) as $directory_name ) {
+			self::delete_directory( trailingslashit( wp_upload_dir()['basedir'] ) . $directory_name );
+		}
+	}
 
+	/**
+	 * Recursively remove a directory via WP_Filesystem, if it exists.
+	 */
+	private static function delete_directory( string $directory ): void {
 		if ( ! is_dir( $directory ) ) {
 			return;
 		}
@@ -127,7 +134,7 @@ final class Uninstaller {
 			self::delete_transients();
 			self::clear_scheduled_events();
 			self::revoke_capabilities();
-			self::delete_qr_code_directory();
+			self::delete_generated_asset_directories();
 
 			restore_current_blog();
 		}

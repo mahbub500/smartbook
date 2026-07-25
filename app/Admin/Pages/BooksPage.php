@@ -13,6 +13,7 @@ use SmartBook\Admin\Support\RedirectsWithNotice;
 use SmartBook\Admin\Tables\BooksListTable;
 use SmartBook\MetaBoxes\BookFields;
 use SmartBook\PostTypes\BookPostType;
+use SmartBook\Services\BarcodeManager;
 use SmartBook\Taxonomies\GenreTaxonomy;
 use SmartBook\Taxonomies\ShelfTaxonomy;
 
@@ -42,13 +43,21 @@ final class BooksPage {
 	private const BULK_EDIT_NONCE_ACTION = 'sb_bulk_edit_apply';
 
 	/**
+	 * @param BarcodeManager $barcodes Barcode storage/lifecycle manager, used by the "Search by barcode" scan box.
+	 */
+	public function __construct( private readonly BarcodeManager $barcodes ) {
+	}
+
+	/**
 	 * Render the page: dispatches to the bulk-edit picker, processes a
-	 * pending action, or renders the list table.
+	 * pending action, resolves a barcode scan, or renders the list table.
 	 */
 	public function render(): void {
 		if ( ! current_user_can( BookPostType::CAP_EDIT_BOOKS ) ) {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'smartbook' ) );
 		}
+
+		$this->maybe_handle_barcode_scan();
 
 		$ids = $this->requested_ids();
 
@@ -67,7 +76,12 @@ final class BooksPage {
 
 		if ( 'print_qr' === $action && array() !== $ids ) {
 			check_admin_referer( 'bulk-books' );
-			$this->redirect_to_print_labels( $ids );
+			$this->redirect_to_print_labels( 'sb_qr_labels', $ids );
+		}
+
+		if ( 'print_barcode' === $action && array() !== $ids ) {
+			check_admin_referer( 'bulk-books' );
+			$this->redirect_to_print_labels( 'sb_barcode_labels', $ids );
 		}
 
 		if ( in_array( $action, array( 'trash', 'untrash', 'delete' ), true ) && array() !== $ids ) {
@@ -85,6 +99,7 @@ final class BooksPage {
 		);
 
 		$this->render_notice();
+		$this->render_scan_form();
 
 		echo '<form method="post">';
 		printf( '<input type="hidden" name="page" value="%s" />', esc_attr( self::PAGE_SLUG ) );
@@ -94,6 +109,60 @@ final class BooksPage {
 		echo '</form>';
 
 		echo '</div>';
+	}
+
+	/**
+	 * If a "sb_barcode_scan" value is present (typed, or entered by a
+	 * USB barcode scanner acting as a keyboard), look it up and redirect
+	 * straight to the matching book's edit screen — or back to this page
+	 * with a "not found" notice. A plain text input submitting on Enter
+	 * is exactly how barcode scanners are normally used, so no extra
+	 * JavaScript is needed for the scan-to-open flow itself.
+	 */
+	private function maybe_handle_barcode_scan(): void {
+		if ( ! isset( $_GET['sb_barcode_scan'] ) ) {
+			return;
+		}
+
+		$value = sanitize_text_field( wp_unslash( $_GET['sb_barcode_scan'] ) );
+
+		if ( '' === $value ) {
+			return;
+		}
+
+		$post_id = $this->barcodes->find_post_by_barcode( $value );
+
+		if ( null !== $post_id ) {
+			wp_safe_redirect( (string) get_edit_post_link( $post_id, 'raw' ) );
+			exit;
+		}
+
+		$this->redirect_with_notice(
+			'error',
+			sprintf(
+				/* translators: %s: scanned barcode value. */
+				__( 'No book found with barcode "%s".', 'smartbook' ),
+				$value
+			)
+		);
+	}
+
+	/**
+	 * Render the "scan or type a barcode" quick-search box.
+	 */
+	private function render_scan_form(): void {
+		echo '<form method="get" class="sb-barcode-scan">';
+		printf( '<input type="hidden" name="page" value="%s" />', esc_attr( self::PAGE_SLUG ) );
+		printf(
+			'<label for="sb-barcode-scan-input" class="screen-reader-text">%s</label>',
+			esc_html__( 'Scan or type a barcode', 'smartbook' )
+		);
+		printf(
+			'<input type="text" id="sb-barcode-scan-input" name="sb_barcode_scan" class="regular-text" placeholder="%s" autocomplete="off" />',
+			esc_attr__( 'Scan or type a barcode…', 'smartbook' )
+		);
+		submit_button( __( 'Find Book', 'smartbook' ), '', '', false );
+		echo '</form>';
 	}
 
 	/**
@@ -129,15 +198,16 @@ final class BooksPage {
 	}
 
 	/**
-	 * Redirect the selected books straight to the QR label print sheet.
-	 * This is a navigation, not a mutation, so unlike handle_row_action()
-	 * it doesn't touch any data or show a result notice.
+	 * Redirect the selected books straight to a label print sheet. This
+	 * is a navigation, not a mutation, so unlike handle_row_action() it
+	 * doesn't touch any data or show a result notice.
 	 *
-	 * @param int[] $ids Post IDs to print labels for.
+	 * @param string $page_slug Either "sb_qr_labels" or "sb_barcode_labels".
+	 * @param int[]  $ids       Post IDs to print labels for.
 	 */
-	private function redirect_to_print_labels( array $ids ): never {
+	private function redirect_to_print_labels( string $page_slug, array $ids ): never {
 		$args = array(
-			'page'            => 'sb_qr_labels',
+			'page'            => $page_slug,
 			'sb_print_labels' => '1',
 			'sb_book_id'      => $ids,
 		);

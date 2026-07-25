@@ -524,10 +524,11 @@
 }
 
 /* -------------------------------------------------------------------- */
-/* QR code meta box                                                      */
+/* QR code / barcode meta boxes                                          */
 /* -------------------------------------------------------------------- */
 
-.sb-qr-meta-box {
+.sb-qr-meta-box,
+.sb-barcode-meta-box {
 	text-align: center;
 }
 
@@ -541,16 +542,46 @@
 	padding: var( --sb-space-2 );
 }
 
-.sb-qr-meta-box__empty {
+.sb-barcode-meta-box__image {
+	width: 100%;
+	height: auto;
+	background: #fff;
+	border: 1px solid var( --sb-color-border );
+	border-radius: var( --sb-radius );
+	padding: var( --sb-space-2 );
+}
+
+.sb-barcode-meta-box__value {
+	margin: var( --sb-space-2 ) 0;
+	word-break: break-all;
+}
+
+.sb-qr-meta-box__empty,
+.sb-barcode-meta-box__empty {
 	color: var( --sb-color-text-muted );
 	font-size: 12px;
 }
 
 /* -------------------------------------------------------------------- */
-/* QR labels: selection checklist                                        */
+/* Search by barcode                                                     */
 /* -------------------------------------------------------------------- */
 
-.sb-qr-select-list {
+.sb-barcode-scan {
+	display: flex;
+	align-items: center;
+	gap: var( --sb-space-2 );
+	margin: var( --sb-space-3 ) 0;
+}
+
+.sb-barcode-scan #sb-barcode-scan-input {
+	max-width: 280px;
+}
+
+/* -------------------------------------------------------------------- */
+/* Labels (QR + barcode): selection checklist                            */
+/* -------------------------------------------------------------------- */
+
+.sb-label-select-list {
 	max-width: 480px;
 	max-height: 420px;
 	overflow-y: auto;
@@ -561,15 +592,15 @@
 	border-radius: var( --sb-radius );
 }
 
-.sb-qr-select-list li {
+.sb-label-select-list li {
 	margin-bottom: var( --sb-space-2 );
 }
 
 /* -------------------------------------------------------------------- */
-/* QR labels: print sheet (screen preview)                               */
+/* Labels (QR + barcode): print sheet (screen preview)                   */
 /* -------------------------------------------------------------------- */
 
-.sb-qr-labels-grid {
+.sb-labels-grid {
 	display: grid;
 	grid-template-columns: repeat( 3, 1fr );
 	gap: var( --sb-space-4 );
@@ -577,7 +608,7 @@
 	margin-top: var( --sb-space-4 );
 }
 
-.sb-qr-label {
+.sb-label {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -590,13 +621,13 @@
 	text-align: center;
 }
 
-.sb-qr-label__image {
+.sb-label__image {
 	width: 100%;
 	max-width: 120px;
 	height: auto;
 }
 
-.sb-qr-label__title {
+.sb-label__title {
 	font-weight: 600;
 	font-size: 12px;
 	line-height: 1.3;
@@ -606,7 +637,13 @@
 	-webkit-box-orient: vertical;
 }
 
-.sb-qr-label__shelf {
+.sb-label__code {
+	font-size: 10px;
+	letter-spacing: 0.03em;
+	color: #1d2327;
+}
+
+.sb-label__shelf {
 	font-size: 11px;
 	color: #646970;
 }
@@ -654,13 +691,13 @@
 		flex-direction: column;
 	}
 
-	.sb-qr-labels-grid {
+	.sb-labels-grid {
 		grid-template-columns: 1fr;
 	}
 }
 
 /* -------------------------------------------------------------------- */
-/* Print: QR label sheet (Admin\Pages\QrLabelsPage)                     */
+/* Print: label sheets (Admin\Pages\AbstractLabelsPage)                 */
 /* -------------------------------------------------------------------- */
 
 .sb-no-print {
@@ -695,7 +732,7 @@
 		padding: 0 !important;
 	}
 
-	.sb-qr-labels-grid {
+	.sb-labels-grid {
 		display: grid;
 		grid-template-columns: repeat( 3, 1fr );
 		gap: 4mm;
@@ -703,7 +740,7 @@
 		margin: 0;
 	}
 
-	.sb-qr-label {
+	.sb-label {
 		border: 1px dashed #999;
 		break-inside: avoid;
 		page-break-inside: avoid;

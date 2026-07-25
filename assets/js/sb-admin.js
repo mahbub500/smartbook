@@ -268,7 +268,7 @@
 			return;
 		}
 
-		var sb_checkboxes = sb_scope.querySelectorAll( '.sb-qr-select-list__checkbox' );
+		var sb_checkboxes = sb_scope.querySelectorAll( '.sb-label-select-list__checkbox' );
 
 		sb_selectAll.addEventListener( 'change', function () {
 			sb_checkboxes.forEach( function ( sb_checkbox ) {

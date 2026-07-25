@@ -18,6 +18,7 @@ use SmartBook\Core\Contracts\ServiceProviderInterface;
 use SmartBook\Frontend\FrontendServiceProvider;
 use SmartBook\MetaBoxes\MetaBoxServiceProvider;
 use SmartBook\PostTypes\PostTypeServiceProvider;
+use SmartBook\Services\BarcodeServiceProvider;
 use SmartBook\Services\LoggerServiceProvider;
 use SmartBook\Services\QrCodeServiceProvider;
 use SmartBook\Settings\SettingsServiceProvider;
@@ -53,6 +54,7 @@ final class Plugin {
 		PostTypeServiceProvider::class,
 		TaxonomyServiceProvider::class,
 		QrCodeServiceProvider::class,
+		BarcodeServiceProvider::class,
 		MetaBoxServiceProvider::class,
 		FrontendServiceProvider::class,
 		AdminServiceProvider::class,
