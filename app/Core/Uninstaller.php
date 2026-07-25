@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace SmartBook\Core;
 
+use SmartBook\PostTypes\BookPostType;
+
 /**
  * Permanently removes all data owned by the plugin. Invoked only from
  * uninstall.php, never on plain deactivation.
@@ -30,6 +32,7 @@ final class Uninstaller {
 		self::delete_options();
 		self::delete_transients();
 		self::clear_scheduled_events();
+		self::revoke_capabilities();
 
 		if ( is_multisite() ) {
 			self::uninstall_for_network();
@@ -65,6 +68,27 @@ final class Uninstaller {
 	}
 
 	/**
+	 * Strip the custom "sb_book"/"sb_books" capabilities Activator granted,
+	 * from every role that currently holds them.
+	 */
+	private static function revoke_capabilities(): void {
+		$capabilities = array_unique( BookPostType::capabilities() );
+		$roles        = wp_roles();
+
+		foreach ( array_keys( $roles->role_objects ) as $role_name ) {
+			$role = get_role( $role_name );
+
+			if ( null === $role ) {
+				continue;
+			}
+
+			foreach ( $capabilities as $capability ) {
+				$role->remove_cap( $capability );
+			}
+		}
+	}
+
+	/**
 	 * Repeat the per-site cleanup across every site in a multisite network.
 	 */
 	private static function uninstall_for_network(): void {
@@ -76,6 +100,7 @@ final class Uninstaller {
 			self::delete_options();
 			self::delete_transients();
 			self::clear_scheduled_events();
+			self::revoke_capabilities();
 
 			restore_current_blog();
 		}
