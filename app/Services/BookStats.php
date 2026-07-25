@@ -64,6 +64,99 @@ final class BookStats {
 	}
 
 	/**
+	 * Number of books currently on loan: "sb_borrowed" is set and
+	 * "sb_returned" is not — a book stays counted as borrowed until it's
+	 * explicitly marked returned, regardless of its return/reminder dates.
+	 */
+	public function count_active_borrows(): int {
+		return count(
+			array_filter(
+				$this->posts(),
+				static function ( WP_Post $post ): bool {
+					return '1' === (string) get_post_meta( $post->ID, 'sb_borrowed', true )
+						&& '1' !== (string) get_post_meta( $post->ID, 'sb_returned', true );
+				}
+			)
+		);
+	}
+
+	/**
+	 * Books that need attention on the dashboard: lost copies, overdue
+	 * loans (past their "sb_return_date"), and loans whose
+	 * "sb_reminder" date has arrived. Returned books never appear.
+	 * A book already flagged "overdue" is not also listed as a
+	 * "reminder", to avoid showing it twice.
+	 *
+	 * Sorted most urgent first (overdue, then lost, then reminder), and
+	 * chronologically within each group.
+	 *
+	 * @return array<int, array{post_id: int, title: string, borrowed_to: string, date: string, status: string}>
+	 */
+	public function borrow_alerts(): array {
+		$today  = current_time( 'Y-m-d' );
+		$alerts = array();
+
+		foreach ( $this->posts() as $post ) {
+			if ( '1' === (string) get_post_meta( $post->ID, 'sb_lost', true ) ) {
+				$alerts[] = $this->borrow_alert_row( $post, 'lost', (string) get_post_meta( $post->ID, 'sb_return_date', true ) );
+				continue;
+			}
+
+			$borrowed = '1' === (string) get_post_meta( $post->ID, 'sb_borrowed', true );
+			$returned = '1' === (string) get_post_meta( $post->ID, 'sb_returned', true );
+
+			if ( ! $borrowed || $returned ) {
+				continue;
+			}
+
+			$return_date = (string) get_post_meta( $post->ID, 'sb_return_date', true );
+
+			if ( '' !== $return_date && $return_date < $today ) {
+				$alerts[] = $this->borrow_alert_row( $post, 'overdue', $return_date );
+				continue;
+			}
+
+			$reminder_date = (string) get_post_meta( $post->ID, 'sb_reminder', true );
+
+			if ( '' !== $reminder_date && $reminder_date <= $today ) {
+				$alerts[] = $this->borrow_alert_row( $post, 'reminder', $return_date );
+			}
+		}
+
+		usort( $alerts, static function ( array $a, array $b ): int {
+			$rank      = array(
+				'overdue'  => 0,
+				'lost'     => 1,
+				'reminder' => 2,
+			);
+			$rank_diff = $rank[ $a['status'] ] <=> $rank[ $b['status'] ];
+
+			if ( 0 !== $rank_diff ) {
+				return $rank_diff;
+			}
+
+			return strcmp( $a['date'], $b['date'] );
+		} );
+
+		return $alerts;
+	}
+
+	/**
+	 * Build one borrow_alerts() row.
+	 *
+	 * @return array{post_id: int, title: string, borrowed_to: string, date: string, status: string}
+	 */
+	private function borrow_alert_row( WP_Post $post, string $status, string $date ): array {
+		return array(
+			'post_id'     => $post->ID,
+			'title'       => get_the_title( $post ),
+			'borrowed_to' => (string) get_post_meta( $post->ID, 'sb_borrowed_to', true ),
+			'date'        => $date,
+			'status'      => $status,
+		);
+	}
+
+	/**
 	 * Book counts grouped by the year of their "sb_purchase_date" meta,
 	 * ascending. Books without a purchase date are not counted, since
 	 * there is nothing to chart them by.

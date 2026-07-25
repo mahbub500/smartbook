@@ -433,6 +433,10 @@
 	border-color: var( --sb-color-border );
 }
 
+.sb-reminders-table {
+	max-width: 700px;
+}
+
 /* -------------------------------------------------------------------- */
 /* Books list table                                                      */
 /* -------------------------------------------------------------------- */
@@ -518,9 +522,16 @@
 	border-color: var( --sb-color-success );
 }
 
-.sb-badge--abandoned {
+.sb-badge--abandoned,
+.sb-badge--overdue,
+.sb-badge--lost {
 	color: var( --sb-color-error );
 	border-color: var( --sb-color-error );
+}
+
+.sb-badge--reminder {
+	color: var( --sb-color-star-filled );
+	border-color: var( --sb-color-star-filled );
 }
 
 /* -------------------------------------------------------------------- */

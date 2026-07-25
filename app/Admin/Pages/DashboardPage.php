@@ -88,8 +88,10 @@ final class DashboardPage implements Hookable {
 		$this->render_card( __( 'Completed', 'smartbook' ), $this->stats->count_by_status( 'read' ) );
 		$this->render_card( __( 'Wishlist', 'smartbook' ), $this->stats->count_by_flag( 'sb_wishlist' ) );
 		$this->render_card( __( 'Favorites', 'smartbook' ), $this->stats->count_by_flag( 'sb_favorite' ) );
-		$this->render_card( __( 'Borrowed', 'smartbook' ), $this->stats->count_by_flag( 'sb_borrowed' ) );
+		$this->render_card( __( 'Borrowed', 'smartbook' ), $this->stats->count_active_borrows() );
 		echo '</div>';
+
+		$this->render_borrow_reminders();
 
 		printf( '<h2>%s</h2>', esc_html__( 'Charts', 'smartbook' ) );
 		echo '<div class="sb-dashboard__charts">';
@@ -118,6 +120,62 @@ final class DashboardPage implements Hookable {
 			'<div class="sb-card"><span class="sb-card__value">%s</span><span class="sb-card__label">%s</span></div>',
 			esc_html( (string) $value ),
 			esc_html( $label )
+		);
+	}
+
+	/**
+	 * Render the borrow-management reminders table: lost copies, overdue
+	 * loans, and loans whose reminder date has arrived (see
+	 * BookStats::borrow_alerts()).
+	 */
+	private function render_borrow_reminders(): void {
+		$alerts = $this->stats->borrow_alerts();
+
+		printf( '<h2>%s</h2>', esc_html__( 'Borrow Reminders', 'smartbook' ) );
+
+		if ( array() === $alerts ) {
+			printf( '<p>%s</p>', esc_html__( 'No overdue, lost, or reminder-triggered borrows.', 'smartbook' ) );
+
+			return;
+		}
+
+		echo '<table class="widefat striped sb-stats-table sb-reminders-table">';
+		echo '<thead><tr>';
+
+		foreach ( array( __( 'Book', 'smartbook' ), __( 'Borrowed To', 'smartbook' ), __( 'Date', 'smartbook' ), __( 'Status', 'smartbook' ) ) as $header ) {
+			printf( '<th>%s</th>', esc_html( $header ) );
+		}
+
+		echo '</tr></thead><tbody>';
+
+		foreach ( $alerts as $alert ) {
+			printf(
+				'<tr><td><a href="%1$s">%2$s</a></td><td>%3$s</td><td>%4$s</td><td>%5$s</td></tr>',
+				esc_url( (string) get_edit_post_link( $alert['post_id'] ) ),
+				esc_html( $alert['title'] ),
+				esc_html( '' !== $alert['borrowed_to'] ? $alert['borrowed_to'] : '—' ),
+				esc_html( '' !== $alert['date'] ? $alert['date'] : '—' ),
+				$this->status_badge( $alert['status'] )
+			);
+		}
+
+		echo '</tbody></table>';
+	}
+
+	/**
+	 * Build a status badge for one borrow_alerts() row.
+	 */
+	private function status_badge( string $status ): string {
+		$labels = array(
+			'overdue'  => __( 'Overdue', 'smartbook' ),
+			'lost'     => __( 'Lost', 'smartbook' ),
+			'reminder' => __( 'Reminder', 'smartbook' ),
+		);
+
+		return sprintf(
+			'<span class="sb-badge sb-badge--%1$s">%2$s</span>',
+			esc_attr( $status ),
+			esc_html( $labels[ $status ] ?? $status )
 		);
 	}
 

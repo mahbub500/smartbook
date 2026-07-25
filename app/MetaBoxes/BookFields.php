@@ -140,6 +140,33 @@ final class BookFields {
 				'type'        => 'checkbox',
 				'description' => __( 'This copy is on loan (borrowed from or lent to someone else).', 'smartbook' ),
 			),
+			'sb_borrowed_to'   => array(
+				'label'       => __( 'Borrowed To', 'smartbook' ),
+				'type'        => 'text',
+				'description' => __( 'Name of the person who has this book.', 'smartbook' ),
+			),
+			'sb_borrow_date'   => array(
+				'label' => __( 'Borrow Date', 'smartbook' ),
+				'type'  => 'date',
+			),
+			'sb_return_date'   => array(
+				'label'       => __( 'Return Date', 'smartbook' ),
+				'type'        => 'date',
+				'description' => __( 'Expected/due date. Shown on the dashboard as overdue once this date passes.', 'smartbook' ),
+			),
+			'sb_reminder'      => array(
+				'label'       => __( 'Reminder Date', 'smartbook' ),
+				'type'        => 'date',
+				'description' => __( 'Shown on the dashboard as a reminder starting this date.', 'smartbook' ),
+			),
+			'sb_returned'      => array(
+				'label' => __( 'Returned', 'smartbook' ),
+				'type'  => 'checkbox',
+			),
+			'sb_lost'          => array(
+				'label' => __( 'Lost', 'smartbook' ),
+				'type'  => 'checkbox',
+			),
 		);
 	}
 
