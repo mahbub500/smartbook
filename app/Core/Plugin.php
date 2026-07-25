@@ -14,6 +14,7 @@ use SmartBook\Assets\AssetServiceProvider;
 use SmartBook\Core\Container\Container;
 use SmartBook\Core\Contracts\ContainerInterface;
 use SmartBook\Core\Contracts\ServiceProviderInterface;
+use SmartBook\MetaBoxes\MetaBoxServiceProvider;
 use SmartBook\PostTypes\PostTypeServiceProvider;
 use SmartBook\Services\LoggerServiceProvider;
 use SmartBook\Settings\SettingsServiceProvider;
@@ -48,6 +49,7 @@ final class Plugin {
 		AssetServiceProvider::class,
 		PostTypeServiceProvider::class,
 		TaxonomyServiceProvider::class,
+		MetaBoxServiceProvider::class,
 	);
 
 	/**
