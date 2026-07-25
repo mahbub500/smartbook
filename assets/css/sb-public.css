@@ -1,0 +1,22 @@
+/**
+ * SmartBook public styles.
+ */
+
+.sb-hidden {
+	display: none;
+}
+
+.sb-book {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.sb-book__title {
+	font-weight: 600;
+}
+
+.sb-book__meta {
+	font-size: 0.875em;
+	opacity: 0.75;
+}

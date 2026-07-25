@@ -6,6 +6,8 @@
 .DS_Store
 Thumbs.db
 
+vendor/
+
 # Node.js dependencies
 node_modules/
 jspm_packages/

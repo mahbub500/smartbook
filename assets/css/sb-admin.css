@@ -1,0 +1,32 @@
+/**
+ * SmartBook admin styles.
+ */
+
+.sb-hidden {
+	display: none;
+}
+
+.sb-notice {
+	border-left: 4px solid #2271b1;
+	padding: 8px 12px;
+	background: #fff;
+	margin: 12px 0;
+}
+
+.sb-notice--error {
+	border-left-color: #d63638;
+}
+
+.sb-notice--success {
+	border-left-color: #00a32a;
+}
+
+.sb-field-group {
+	margin-bottom: 16px;
+}
+
+.sb-field-group label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 4px;
+}
