@@ -157,7 +157,11 @@
 		} );
 
 		sb_table.appendChild( sb_tbody );
-		sb_resultsEl.appendChild( sb_table );
+
+		var sb_scroll = sb_document.createElement( 'div' );
+		sb_scroll.className = 'sb-table-scroll';
+		sb_scroll.appendChild( sb_table );
+		sb_resultsEl.appendChild( sb_scroll );
 
 		if ( sb_downloadUrl ) {
 			var sb_paragraph = sb_document.createElement( 'p' );

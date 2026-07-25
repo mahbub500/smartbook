@@ -390,7 +390,7 @@ final class ImportExportPage implements Hookable {
 		$errors = $result['errors'];
 
 		if ( array() !== $errors ) {
-			echo '<table class="widefat striped sb-import-result__errors">';
+			echo '<div class="sb-table-scroll"><table class="widefat striped sb-import-result__errors">';
 			echo '<thead><tr>';
 
 			foreach ( array( __( 'Row', 'smartbook' ), __( 'Title', 'smartbook' ), __( 'Error', 'smartbook' ) ) as $header ) {
@@ -408,7 +408,7 @@ final class ImportExportPage implements Hookable {
 				);
 			}
 
-			echo '</tbody></table>';
+			echo '</tbody></table></div>';
 
 			printf(
 				'<p><a class="button" href="%s">%s</a></p>',
@@ -469,8 +469,9 @@ final class ImportExportPage implements Hookable {
 		wp_nonce_field( self::NONCE_ACTION, self::NONCE_NAME );
 		printf( '<input type="hidden" name="action" value="%s" />', esc_attr( self::EXPORT_ACTION ) );
 
-		echo '<fieldset class="sb-field-group">';
+		echo '<fieldset class="sb-choice-group">';
 		printf( '<legend>%s</legend>', esc_html__( 'Format', 'smartbook' ) );
+		echo '<div class="sb-choice-group__options">';
 
 		foreach ( array(
 			'csv'  => __( 'CSV', 'smartbook' ),
@@ -478,13 +479,14 @@ final class ImportExportPage implements Hookable {
 			'xml'  => __( 'XML', 'smartbook' ),
 		) as $key => $label ) {
 			printf(
-				'<label><input type="radio" name="sb_export_format" value="%1$s"%2$s /> %3$s</label> ',
+				'<label><input type="radio" name="sb_export_format" value="%1$s"%2$s /> %3$s</label>',
 				esc_attr( $key ),
 				checked( 'csv', $key, false ),
 				esc_html( $label )
 			);
 		}
 
+		echo '</div>';
 		echo '</fieldset>';
 
 		submit_button( __( 'Export', 'smartbook' ) );
@@ -582,8 +584,9 @@ final class ImportExportPage implements Hookable {
 	 * Render the duplicate-handling radio group shared by Import and Restore.
 	 */
 	private function render_duplicate_strategy_field(): void {
-		echo '<fieldset class="sb-field-group">';
+		echo '<fieldset class="sb-choice-group">';
 		printf( '<legend>%s</legend>', esc_html__( 'When a matching book already exists (matched by ID, ISBN-13, ISBN-10, or exact title)', 'smartbook' ) );
+		echo '<div class="sb-choice-group__options">';
 
 		foreach ( array(
 			ImportOptions::STRATEGY_UPDATE => __( 'Update the existing book', 'smartbook' ),
@@ -591,13 +594,14 @@ final class ImportExportPage implements Hookable {
 			ImportOptions::STRATEGY_CREATE => __( 'Always create a new book', 'smartbook' ),
 		) as $value => $label ) {
 			printf(
-				'<label><input type="radio" name="duplicate_strategy" value="%1$s"%2$s /> %3$s</label> ',
+				'<label><input type="radio" name="duplicate_strategy" value="%1$s"%2$s /> %3$s</label>',
 				esc_attr( $value ),
 				checked( ImportOptions::STRATEGY_UPDATE, $value, false ),
 				esc_html( $label )
 			);
 		}
 
+		echo '</div>';
 		echo '</fieldset>';
 	}
 
