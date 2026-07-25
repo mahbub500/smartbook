@@ -16,10 +16,15 @@ namespace SmartBook\Taxonomies;
 final class PublisherTaxonomy extends AbstractTaxonomy {
 
 	/**
+	 * Taxonomy slug.
+	 */
+	public const SLUG = 'sb_publisher';
+
+	/**
 	 * {@inheritDoc}
 	 */
 	protected function slug(): string {
-		return 'sb_publisher';
+		return self::SLUG;
 	}
 
 	/**

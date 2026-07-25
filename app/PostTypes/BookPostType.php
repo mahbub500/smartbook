@@ -30,6 +30,13 @@ final class BookPostType implements Hookable {
 	public const SLUG = 'sb_book';
 
 	/**
+	 * The "edit_posts"-equivalent custom capability, exposed as a constant
+	 * so other modules (admin menu, admin pages) can gate access without
+	 * duplicating the literal string.
+	 */
+	public const CAP_EDIT_BOOKS = 'edit_sb_books';
+
+	/**
 	 * {@inheritDoc}
 	 */
 	public function register_hooks(): void {
@@ -59,7 +66,7 @@ final class BookPostType implements Hookable {
 			'edit_post'             => 'edit_sb_book',
 			'read_post'             => 'read_sb_book',
 			'delete_post'           => 'delete_sb_book',
-			'edit_posts'            => 'edit_sb_books',
+			'edit_posts'            => self::CAP_EDIT_BOOKS,
 			'edit_others_posts'     => 'edit_others_sb_books',
 			'publish_posts'         => 'publish_sb_books',
 			'read_private_posts'    => 'read_private_sb_books',
@@ -85,7 +92,11 @@ final class BookPostType implements Hookable {
 			'public'                => true,
 			'publicly_queryable'    => true,
 			'show_ui'               => true,
-			'show_in_menu'          => true,
+			// The list/edit screens still exist and work when linked to
+			// directly; Admin\AdminMenu adds the explicit "Books" submenu
+			// entry so it lands under the SmartBook parent menu instead of
+			// WordPress auto-creating its own top-level menu for it.
+			'show_in_menu'          => false,
 			'show_in_admin_bar'     => true,
 			'show_in_nav_menus'     => true,
 			'show_in_rest'          => true,

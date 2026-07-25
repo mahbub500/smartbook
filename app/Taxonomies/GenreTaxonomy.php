@@ -16,10 +16,15 @@ namespace SmartBook\Taxonomies;
 final class GenreTaxonomy extends AbstractTaxonomy {
 
 	/**
+	 * Taxonomy slug.
+	 */
+	public const SLUG = 'sb_genre';
+
+	/**
 	 * {@inheritDoc}
 	 */
 	protected function slug(): string {
-		return 'sb_genre';
+		return self::SLUG;
 	}
 
 	/**

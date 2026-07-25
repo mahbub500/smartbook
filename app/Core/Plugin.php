@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace SmartBook\Core;
 
 use RuntimeException;
+use SmartBook\Admin\AdminServiceProvider;
 use SmartBook\Assets\AssetServiceProvider;
 use SmartBook\Core\Container\Container;
 use SmartBook\Core\Contracts\ContainerInterface;
@@ -50,6 +51,7 @@ final class Plugin {
 		PostTypeServiceProvider::class,
 		TaxonomyServiceProvider::class,
 		MetaBoxServiceProvider::class,
+		AdminServiceProvider::class,
 	);
 
 	/**

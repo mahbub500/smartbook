@@ -24,6 +24,12 @@ final class Settings {
 	private const OPTION_NAME = 'sb_options';
 
 	/**
+	 * Settings API option group name, used by both SettingsServiceProvider
+	 * (register_setting()) and Admin\Pages\SettingsPage (settings_fields()).
+	 */
+	public const OPTION_GROUP = 'sb_options_group';
+
+	/**
 	 * Default values used when no stored value exists for a key.
 	 *
 	 * @var array<string, mixed>

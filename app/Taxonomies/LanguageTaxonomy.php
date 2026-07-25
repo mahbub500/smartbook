@@ -16,10 +16,15 @@ namespace SmartBook\Taxonomies;
 final class LanguageTaxonomy extends AbstractTaxonomy {
 
 	/**
+	 * Taxonomy slug.
+	 */
+	public const SLUG = 'sb_language';
+
+	/**
 	 * {@inheritDoc}
 	 */
 	protected function slug(): string {
-		return 'sb_language';
+		return self::SLUG;
 	}
 
 	/**

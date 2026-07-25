@@ -9,18 +9,18 @@ declare(strict_types=1);
 
 namespace SmartBook\MetaBoxes;
 
-use DateTimeImmutable;
 use SmartBook\Core\Contracts\Hookable;
 use SmartBook\PostTypes\BookPostType;
 use WP_Post;
 
 /**
  * Renders and persists the "Book Details" meta box on the "sb_book"
- * edit screen: sixteen sb_-prefixed meta fields covering identification,
- * condition/value, reading progress, and free-text notes.
+ * edit screen: sixteen sb_-prefixed meta fields (defined in BookFields)
+ * covering identification, condition/value, reading progress, and
+ * free-text notes.
  *
  * Every write goes through a nonce check plus a capability check
- * (can_save()) and per-field sanitization (sanitize_value()); every
+ * (can_save()) and per-field sanitization (BookFields::sanitize()); every
  * read goes through esc_attr()/esc_html()/esc_textarea() at the point
  * of output (render_field()).
  */
@@ -71,7 +71,7 @@ final class BookDetailsMetaBox implements Hookable {
 	public function render( WP_Post $post ): void {
 		wp_nonce_field( self::NONCE_ACTION, self::NONCE_NAME );
 
-		$fields = $this->fields();
+		$fields = BookFields::definitions();
 
 		echo '<div class="sb-meta-box">';
 
@@ -100,7 +100,7 @@ final class BookDetailsMetaBox implements Hookable {
 			return;
 		}
 
-		foreach ( $this->fields() as $key => $field ) {
+		foreach ( BookFields::definitions() as $key => $field ) {
 			$this->save_field( $post_id, $key, $field );
 		}
 	}
@@ -141,13 +141,13 @@ final class BookDetailsMetaBox implements Hookable {
 	 *
 	 * @param int                  $post_id Post ID being saved.
 	 * @param string               $key     Meta key, e.g. "sb_isbn".
-	 * @param array<string, mixed> $field   Field definition from fields().
+	 * @param array<string, mixed> $field   Field definition from BookFields::definitions().
 	 */
 	private function save_field( int $post_id, string $key, array $field ): void {
 		// Checkboxes send no value at all when unchecked, unlike every
 		// other input type, so they need their own presence check.
 		if ( 'checkbox' === $field['type'] ) {
-			update_post_meta( $post_id, $key, isset( $_POST[ $key ] ) ? '1' : '' );
+			update_post_meta( $post_id, $key, BookFields::sanitize( $key, isset( $_POST[ $key ] ) ) );
 			return;
 		}
 
@@ -155,75 +155,7 @@ final class BookDetailsMetaBox implements Hookable {
 			return;
 		}
 
-		$raw = wp_unslash( $_POST[ $key ] );
-
-		update_post_meta( $post_id, $key, $this->sanitize_value( $raw, $field ) );
-	}
-
-	/**
-	 * Sanitize a raw submitted value according to its field definition.
-	 *
-	 * @param mixed                $raw   Raw, unslashed value from $_POST.
-	 * @param array<string, mixed> $field Field definition from fields().
-	 */
-	private function sanitize_value( mixed $raw, array $field ): string|int|float {
-		return match ( $field['type'] ) {
-			'textarea' => sanitize_textarea_field( (string) $raw ),
-			'select'   => $this->sanitize_choice( (string) $raw, $field['options'] ?? array() ),
-			'number'   => $this->sanitize_number( $raw, $field ),
-			'date'     => $this->sanitize_date( (string) $raw ),
-			default    => sanitize_text_field( (string) $raw ),
-		};
-	}
-
-	/**
-	 * Keep only a value that matches one of a select field's known
-	 * option keys; anything else is discarded.
-	 *
-	 * @param array<string, string> $options Allowed option value => label pairs.
-	 */
-	private function sanitize_choice( string $value, array $options ): string {
-		return array_key_exists( $value, $options ) ? $value : '';
-	}
-
-	/**
-	 * Coerce and clamp a numeric field to its declared type and bounds.
-	 *
-	 * @param mixed                $raw   Raw, unslashed value from $_POST.
-	 * @param array<string, mixed> $field Field definition, may contain "numeric_type", "min", "max".
-	 */
-	private function sanitize_number( mixed $raw, array $field ): int|float {
-		$value = 'float' === ( $field['numeric_type'] ?? 'int' ) ? (float) $raw : (int) $raw;
-
-		if ( isset( $field['min'] ) ) {
-			$value = max( $field['min'], $value );
-		}
-
-		if ( isset( $field['max'] ) ) {
-			$value = min( $field['max'], $value );
-		}
-
-		return $value;
-	}
-
-	/**
-	 * Keep only a strict "Y-m-d" date string; anything else is discarded
-	 * rather than stored malformed.
-	 */
-	private function sanitize_date( string $raw ): string {
-		$raw = sanitize_text_field( $raw );
-
-		if ( '' === $raw ) {
-			return '';
-		}
-
-		$date = DateTimeImmutable::createFromFormat( 'Y-m-d', $raw );
-
-		if ( false === $date || $date->format( 'Y-m-d' ) !== $raw ) {
-			return '';
-		}
-
-		return $raw;
+		update_post_meta( $post_id, $key, BookFields::sanitize( $key, wp_unslash( $_POST[ $key ] ) ) );
 	}
 
 	/**
@@ -232,7 +164,7 @@ final class BookDetailsMetaBox implements Hookable {
 	 *
 	 * @param WP_Post              $post  Post currently being edited.
 	 * @param string               $key   Meta key, e.g. "sb_isbn".
-	 * @param array<string, mixed> $field Field definition from fields().
+	 * @param array<string, mixed> $field Field definition from BookFields::definitions().
 	 */
 	private function render_field( WP_Post $post, string $key, array $field ): void {
 		$value = get_post_meta( $post->ID, $key, true );
@@ -353,120 +285,6 @@ final class BookDetailsMetaBox implements Hookable {
 			'notes'           => array(
 				'title'  => __( 'Notes', 'smartbook' ),
 				'fields' => array( 'sb_notes', 'sb_summary' ),
-			),
-		);
-	}
-
-	/**
-	 * Definition of every meta field this box manages: label, input
-	 * type, and (where relevant) numeric bounds, numeric type, select
-	 * options, or a help description.
-	 *
-	 * @return array<string, array<string, mixed>>
-	 */
-	private function fields(): array {
-		return array(
-			'sb_isbn'          => array(
-				'label'       => __( 'ISBN-10', 'smartbook' ),
-				'type'        => 'text',
-				'description' => __( '10-character International Standard Book Number.', 'smartbook' ),
-			),
-			'sb_isbn13'        => array(
-				'label'       => __( 'ISBN-13', 'smartbook' ),
-				'type'        => 'text',
-				'description' => __( '13-character International Standard Book Number.', 'smartbook' ),
-			),
-			'sb_pages'         => array(
-				'label'        => __( 'Pages', 'smartbook' ),
-				'type'         => 'number',
-				'numeric_type' => 'int',
-				'min'          => 0,
-				'step'         => 1,
-			),
-			'sb_edition'       => array(
-				'label' => __( 'Edition', 'smartbook' ),
-				'type'  => 'text',
-			),
-			'sb_language'      => array(
-				'label' => __( 'Language', 'smartbook' ),
-				'type'  => 'text',
-			),
-			'sb_format'        => array(
-				'label'   => __( 'Format', 'smartbook' ),
-				'type'    => 'select',
-				'options' => array(
-					''          => __( '— Select —', 'smartbook' ),
-					'hardcover' => __( 'Hardcover', 'smartbook' ),
-					'paperback' => __( 'Paperback', 'smartbook' ),
-					'ebook'     => __( 'eBook', 'smartbook' ),
-					'audiobook' => __( 'Audiobook', 'smartbook' ),
-				),
-			),
-			'sb_condition'     => array(
-				'label'   => __( 'Condition', 'smartbook' ),
-				'type'    => 'select',
-				'options' => array(
-					''         => __( '— Select —', 'smartbook' ),
-					'new'      => __( 'New', 'smartbook' ),
-					'like_new' => __( 'Like New', 'smartbook' ),
-					'good'     => __( 'Good', 'smartbook' ),
-					'fair'     => __( 'Fair', 'smartbook' ),
-					'poor'     => __( 'Poor', 'smartbook' ),
-				),
-			),
-			'sb_price'         => array(
-				'label'        => __( 'Price', 'smartbook' ),
-				'type'         => 'number',
-				'numeric_type' => 'float',
-				'min'          => 0,
-				'step'         => 0.01,
-			),
-			'sb_purchase_date' => array(
-				'label' => __( 'Purchase Date', 'smartbook' ),
-				'type'  => 'date',
-			),
-			'sb_rating'        => array(
-				'label'        => __( 'Rating', 'smartbook' ),
-				'type'         => 'number',
-				'numeric_type' => 'int',
-				'min'          => 0,
-				'max'          => 5,
-				'step'         => 1,
-			),
-			'sb_status'        => array(
-				'label'   => __( 'Reading Status', 'smartbook' ),
-				'type'    => 'select',
-				'options' => array(
-					'unread'    => __( 'Unread', 'smartbook' ),
-					'reading'   => __( 'Reading', 'smartbook' ),
-					'read'      => __( 'Read', 'smartbook' ),
-					'on_hold'   => __( 'On Hold', 'smartbook' ),
-					'abandoned' => __( 'Abandoned', 'smartbook' ),
-				),
-			),
-			'sb_progress'      => array(
-				'label'        => __( 'Progress (%)', 'smartbook' ),
-				'type'         => 'number',
-				'numeric_type' => 'int',
-				'min'          => 0,
-				'max'          => 100,
-				'step'         => 1,
-			),
-			'sb_notes'         => array(
-				'label' => __( 'Notes', 'smartbook' ),
-				'type'  => 'textarea',
-			),
-			'sb_summary'       => array(
-				'label' => __( 'Summary', 'smartbook' ),
-				'type'  => 'textarea',
-			),
-			'sb_favorite'      => array(
-				'label' => __( 'Favorite', 'smartbook' ),
-				'type'  => 'checkbox',
-			),
-			'sb_wishlist'      => array(
-				'label' => __( 'On Wishlist', 'smartbook' ),
-				'type'  => 'checkbox',
 			),
 		);
 	}

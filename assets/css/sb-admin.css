@@ -68,3 +68,44 @@
 .sb-meta-box__grid .sb-field-group--full {
 	grid-column: 1 / -1;
 }
+
+.sb-admin-page .sb-dashboard__cards {
+	display: grid;
+	grid-template-columns: repeat( auto-fit, minmax( 160px, 1fr ) );
+	gap: 16px;
+	margin: 16px 0 24px;
+	max-width: 900px;
+}
+
+.sb-card {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 16px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+}
+
+.sb-card__value {
+	font-size: 28px;
+	font-weight: 600;
+	line-height: 1.2;
+}
+
+.sb-card__label {
+	color: #646970;
+}
+
+.sb-dashboard__links {
+	max-width: 400px;
+}
+
+.sb-dashboard__links li {
+	margin-bottom: 6px;
+}
+
+.sb-stats-table {
+	max-width: 500px;
+	margin-bottom: 32px;
+}

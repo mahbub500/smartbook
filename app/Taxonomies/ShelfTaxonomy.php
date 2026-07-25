@@ -16,10 +16,15 @@ namespace SmartBook\Taxonomies;
 final class ShelfTaxonomy extends AbstractTaxonomy {
 
 	/**
+	 * Taxonomy slug.
+	 */
+	public const SLUG = 'sb_shelf';
+
+	/**
 	 * {@inheritDoc}
 	 */
 	protected function slug(): string {
-		return 'sb_shelf';
+		return self::SLUG;
 	}
 
 	/**

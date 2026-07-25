@@ -36,7 +36,7 @@ final class SettingsServiceProvider extends AbstractServiceProvider {
 				$settings = $container->make( Settings::class );
 
 				register_setting(
-					'sb_options_group',
+					Settings::OPTION_GROUP,
 					Settings::option_name(),
 					array(
 						'type'              => 'array',

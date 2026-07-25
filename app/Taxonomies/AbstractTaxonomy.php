@@ -74,6 +74,22 @@ abstract class AbstractTaxonomy implements Hookable {
 	}
 
 	/**
+	 * Public accessor for this taxonomy's slug, for modules (e.g. the
+	 * admin menu, statistics page) that need to reference it without
+	 * duplicating the literal string.
+	 */
+	public function get_slug(): string {
+		return $this->slug();
+	}
+
+	/**
+	 * Public accessor for this taxonomy's translated plural label.
+	 */
+	public function get_plural_label(): string {
+		return $this->plural_name();
+	}
+
+	/**
 	 * REST base, kept identical to the taxonomy slug so every taxonomy's
 	 * REST route stays under the "sb_" prefix.
 	 */
@@ -103,6 +119,12 @@ abstract class AbstractTaxonomy implements Hookable {
 			'publicly_queryable' => true,
 			'hierarchical'       => $hierarchical,
 			'show_ui'            => true,
+			// Term management is exposed to nav via explicit submenu
+			// entries in Admin\AdminMenu (for the taxonomies that get
+			// one), not WordPress's automatic per-taxonomy menu item;
+			// this taxonomy's meta box on the book edit screen still
+			// works regardless, since that only depends on show_ui.
+			'show_in_menu'       => false,
 			'show_admin_column'  => true,
 			'show_in_nav_menus'  => true,
 			'show_in_quick_edit' => true,

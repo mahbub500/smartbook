@@ -16,10 +16,15 @@ namespace SmartBook\Taxonomies;
 final class CollectionTaxonomy extends AbstractTaxonomy {
 
 	/**
+	 * Taxonomy slug.
+	 */
+	public const SLUG = 'sb_collection';
+
+	/**
 	 * {@inheritDoc}
 	 */
 	protected function slug(): string {
-		return 'sb_collection';
+		return self::SLUG;
 	}
 
 	/**
