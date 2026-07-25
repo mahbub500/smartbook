@@ -81,24 +81,29 @@ final class DashboardPage implements Hookable {
 		}
 
 		echo '<div class="wrap sb-admin-page">';
-		printf( '<h1>%s</h1>', esc_html__( 'SmartBook Dashboard', 'smartbook' ) );
+		echo '<div class="sb-dashboard">';
+
+		echo '<div class="sb-dashboard__header">';
+		printf( '<h1 class="sb-dashboard__title">%s</h1>', esc_html__( 'SmartBook Dashboard', 'smartbook' ) );
+		printf( '<p class="sb-dashboard__subtitle">%s</p>', esc_html__( 'An overview of your library, at a glance.', 'smartbook' ) );
+		echo '</div>';
 
 		$reading_tracker_enabled = sb_option( 'enable_reading_tracker', true );
 		$borrow_enabled          = sb_option( 'enable_borrow', true );
 
 		echo '<div class="sb-dashboard__cards">';
-		$this->render_card( __( 'Total Books', 'smartbook' ), $this->stats->total() );
+		$this->render_card( __( 'Total Books', 'smartbook' ), $this->stats->total(), 'total', 'book-alt' );
 
 		if ( $reading_tracker_enabled ) {
-			$this->render_card( __( 'Reading', 'smartbook' ), $this->stats->count_by_status( 'reading' ) );
-			$this->render_card( __( 'Completed', 'smartbook' ), $this->stats->count_by_status( 'read' ) );
+			$this->render_card( __( 'Reading', 'smartbook' ), $this->stats->count_by_status( 'reading' ), 'reading', 'visibility' );
+			$this->render_card( __( 'Completed', 'smartbook' ), $this->stats->count_by_status( 'read' ), 'completed', 'yes-alt' );
 		}
 
-		$this->render_card( __( 'Wishlist', 'smartbook' ), $this->stats->count_by_flag( 'sb_wishlist' ) );
-		$this->render_card( __( 'Favorites', 'smartbook' ), $this->stats->count_by_flag( 'sb_favorite' ) );
+		$this->render_card( __( 'Wishlist', 'smartbook' ), $this->stats->count_by_flag( 'sb_wishlist' ), 'wishlist', 'heart' );
+		$this->render_card( __( 'Favorites', 'smartbook' ), $this->stats->count_by_flag( 'sb_favorite' ), 'favorites', 'star-filled' );
 
 		if ( $borrow_enabled ) {
-			$this->render_card( __( 'Borrowed', 'smartbook' ), $this->stats->count_active_borrows() );
+			$this->render_card( __( 'Borrowed', 'smartbook' ), $this->stats->count_active_borrows(), 'borrowed', 'external' );
 		}
 
 		echo '</div>';
@@ -107,7 +112,11 @@ final class DashboardPage implements Hookable {
 			$this->render_borrow_reminders();
 		}
 
-		printf( '<h2>%s</h2>', esc_html__( 'Charts', 'smartbook' ) );
+		echo '<div class="sb-panel sb-panel--charts">';
+		printf(
+			'<h2 class="sb-panel__title"><span class="dashicons dashicons-chart-bar" aria-hidden="true"></span>%s</h2>',
+			esc_html__( 'Charts', 'smartbook' )
+		);
 		echo '<div class="sb-dashboard__charts">';
 		$this->render_chart_card( 'sb-chart-books-per-year', __( 'Books Per Year', 'smartbook' ) );
 		$this->render_chart_card( 'sb-chart-books-per-genre', __( 'Books Per Genre', 'smartbook' ) );
@@ -118,24 +127,38 @@ final class DashboardPage implements Hookable {
 		}
 
 		echo '</div>';
+		echo '</div>';
 
-		printf( '<h2>%s</h2>', esc_html__( 'Quick Links', 'smartbook' ) );
-		echo '<ul class="sb-dashboard__links">';
-		$this->render_link( __( 'Add New Book', 'smartbook' ), admin_url( 'post-new.php?post_type=' . BookPostType::SLUG ) );
-		$this->render_link( __( 'View All Books', 'smartbook' ), admin_url( 'admin.php?page=sb_books' ) );
-		$this->render_link( __( 'View Statistics', 'smartbook' ), admin_url( 'admin.php?page=sb_statistics' ) );
-		$this->render_link( __( 'Import / Export', 'smartbook' ), admin_url( 'admin.php?page=sb_import_export' ) );
-		echo '</ul>';
+		echo '<div class="sb-panel">';
+		printf(
+			'<h2 class="sb-panel__title"><span class="dashicons dashicons-admin-links" aria-hidden="true"></span>%s</h2>',
+			esc_html__( 'Quick Links', 'smartbook' )
+		);
+		echo '<div class="sb-quick-links">';
+		$this->render_link( __( 'Add New Book', 'smartbook' ), admin_url( 'post-new.php?post_type=' . BookPostType::SLUG ), 'plus-alt' );
+		$this->render_link( __( 'View All Books', 'smartbook' ), admin_url( 'admin.php?page=sb_books' ), 'book-alt' );
+		$this->render_link( __( 'View Statistics', 'smartbook' ), admin_url( 'admin.php?page=sb_statistics' ), 'chart-bar' );
+		$this->render_link( __( 'Import / Export', 'smartbook' ), admin_url( 'admin.php?page=sb_import_export' ), 'upload' );
+		echo '</div>';
+		echo '</div>';
 
+		echo '</div>';
 		echo '</div>';
 	}
 
 	/**
 	 * Render a single stat card.
+	 *
+	 * @param string $label    Card label.
+	 * @param int    $value    Card value.
+	 * @param string $modifier BEM modifier suffix selecting the card's accent colour (see sb-admin.css).
+	 * @param string $icon     Dashicon slug (without the "dashicons-" prefix) shown in the card's icon chip.
 	 */
-	private function render_card( string $label, int $value ): void {
+	private function render_card( string $label, int $value, string $modifier, string $icon ): void {
 		printf(
-			'<div class="sb-card"><span class="sb-card__value">%s</span><span class="sb-card__label">%s</span></div>',
+			'<div class="sb-card sb-card--%1$s"><span class="sb-card__icon"><span class="dashicons dashicons-%2$s" aria-hidden="true"></span></span><span class="sb-card__value">%3$s</span><span class="sb-card__label">%4$s</span></div>',
+			esc_attr( $modifier ),
+			esc_attr( $icon ),
 			esc_html( (string) $value ),
 			esc_html( $label )
 		);
@@ -149,10 +172,18 @@ final class DashboardPage implements Hookable {
 	private function render_borrow_reminders(): void {
 		$alerts = $this->stats->borrow_alerts();
 
-		printf( '<h2>%s</h2>', esc_html__( 'Borrow Reminders', 'smartbook' ) );
+		echo '<div class="sb-panel sb-panel--reminders">';
+		printf(
+			'<h2 class="sb-panel__title"><span class="dashicons dashicons-bell" aria-hidden="true"></span>%s</h2>',
+			esc_html__( 'Borrow Reminders', 'smartbook' )
+		);
 
 		if ( array() === $alerts ) {
-			printf( '<p>%s</p>', esc_html__( 'No overdue, lost, or reminder-triggered borrows.', 'smartbook' ) );
+			printf(
+				'<p class="sb-panel__empty"><span class="dashicons dashicons-yes-alt" aria-hidden="true"></span>%s</p>',
+				esc_html__( 'No overdue, lost, or reminder-triggered borrows.', 'smartbook' )
+			);
+			echo '</div>';
 
 			return;
 		}
@@ -178,6 +209,7 @@ final class DashboardPage implements Hookable {
 		}
 
 		echo '</tbody></table>';
+		echo '</div>';
 	}
 
 	/**
@@ -210,12 +242,17 @@ final class DashboardPage implements Hookable {
 	}
 
 	/**
-	 * Render a single quick-link list item.
+	 * Render a single quick-link action card.
+	 *
+	 * @param string $label Link label.
+	 * @param string $url   Link destination.
+	 * @param string $icon  Dashicon slug (without the "dashicons-" prefix) shown before the label.
 	 */
-	private function render_link( string $label, string $url ): void {
+	private function render_link( string $label, string $url, string $icon ): void {
 		printf(
-			'<li><a href="%s">%s</a></li>',
+			'<a class="sb-quick-links__item" href="%1$s"><span class="sb-quick-links__icon dashicons dashicons-%2$s" aria-hidden="true"></span><span class="sb-quick-links__label">%3$s</span><span class="sb-quick-links__chevron dashicons dashicons-arrow-right-alt2" aria-hidden="true"></span></a>',
 			esc_url( $url ),
+			esc_attr( $icon ),
 			esc_html( $label )
 		);
 	}

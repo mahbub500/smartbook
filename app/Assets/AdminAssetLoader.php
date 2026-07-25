@@ -92,6 +92,29 @@ final class AdminAssetLoader implements Hookable {
 			return true;
 		}
 
-		return '' !== $screen_id && str_starts_with( $screen_id, 'sb_' );
+		return $this->has_sb_prefix( $screen_id ) || $this->has_sb_prefix( $hook_suffix );
+	}
+
+	/**
+	 * Whether a screen id / hook suffix belongs to SmartBook.
+	 *
+	 * A submenu screen's id/hook always starts with its parent's menu slug
+	 * (e.g. "sb_dashboard_page_sb_books"), so checking for the "sb_" prefix
+	 * alone is enough for every SmartBook page except one: WordPress hooks
+	 * a *top-level* menu's own page (Admin\AdminMenu's "Dashboard" entry,
+	 * added via add_menu_page()) as "toplevel_page_{menu_slug}" instead --
+	 * "toplevel_page_sb_dashboard", not "sb_..." -- so that prefix is
+	 * stripped and checked for separately.
+	 */
+	private function has_sb_prefix( string $id ): bool {
+		if ( '' === $id ) {
+			return false;
+		}
+
+		if ( str_starts_with( $id, 'toplevel_page_' ) ) {
+			$id = substr( $id, strlen( 'toplevel_page_' ) );
+		}
+
+		return str_starts_with( $id, 'sb_' );
 	}
 }
