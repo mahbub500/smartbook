@@ -51,16 +51,20 @@ if ( ! function_exists( 'sb_logger' ) ) {
 
 if ( ! function_exists( 'sb_option' ) ) {
 	/**
-	 * Read a single SmartBook setting, falling back to $default when unset.
+	 * Read a single SmartBook setting, falling back to $fallback_value when unset.
 	 *
-	 * @param string $key     Setting key.
-	 * @param mixed  $default Value returned when the key has not been set.
+	 * @param string $key            Setting key.
+	 * @param mixed  $fallback_value Value returned when the key has not been set.
 	 */
-	function sb_option( string $key, mixed $default = null ): mixed {
-		/** @var Settings $settings */
+	function sb_option( string $key, mixed $fallback_value = null ): mixed {
+		/**
+		 * Settings repository.
+		 *
+		 * @var Settings $settings
+		 */
 		$settings = sb_container()->make( Settings::class );
 
-		return $settings->get( $key, $default );
+		return $settings->get( $key, $fallback_value );
 	}
 }
 

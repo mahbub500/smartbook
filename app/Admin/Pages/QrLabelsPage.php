@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Admin\Pages;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\Services\QrCodeManager;
 
 /**
@@ -21,6 +25,8 @@ use SmartBook\Services\QrCodeManager;
 final class QrLabelsPage extends AbstractLabelsPage {
 
 	/**
+	 * Constructor.
+	 *
 	 * @param QrCodeManager $qr_codes QR code storage/lifecycle manager.
 	 */
 	public function __construct( private readonly QrCodeManager $qr_codes ) {
@@ -49,6 +55,8 @@ final class QrLabelsPage extends AbstractLabelsPage {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	protected function ensure_asset( int $post_id ): void {
 		$this->qr_codes->ensure_generated( $post_id );
@@ -56,6 +64,8 @@ final class QrLabelsPage extends AbstractLabelsPage {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	protected function image_url( int $post_id ): string {
 		return $this->qr_codes->url_for( $post_id );

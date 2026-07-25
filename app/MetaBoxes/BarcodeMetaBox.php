@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\MetaBoxes;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\Core\Contracts\Hookable;
 use SmartBook\PostTypes\BookPostType;
 use SmartBook\Services\BarcodeManager;
@@ -34,6 +38,8 @@ final class BarcodeMetaBox implements Hookable {
 	private const BOX_ID = 'sb_barcode';
 
 	/**
+	 * Constructor.
+	 *
 	 * @param BarcodeManager $manager Barcode storage/lifecycle manager.
 	 */
 	public function __construct( private readonly BarcodeManager $manager ) {
@@ -108,6 +114,8 @@ final class BarcodeMetaBox implements Hookable {
 
 	/**
 	 * Nonce-protected admin-post.php URL for the manual regenerate action.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function regenerate_url( int $post_id ): string {
 		return wp_nonce_url(
@@ -124,6 +132,8 @@ final class BarcodeMetaBox implements Hookable {
 
 	/**
 	 * URL to this book's single-label print sheet.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function print_label_url( int $post_id ): string {
 		return add_query_arg(

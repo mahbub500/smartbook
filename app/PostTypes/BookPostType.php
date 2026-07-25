@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\PostTypes;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\Core\Contracts\Hookable;
 use WP_REST_Posts_Controller;
 
@@ -37,6 +41,13 @@ final class BookPostType implements Hookable {
 	public const CAP_EDIT_BOOKS = 'edit_sb_books';
 
 	/**
+	 * The "edit_others_posts"-equivalent custom capability. Users who lack
+	 * this capability may only act on books they authored themselves; see
+	 * self::author_scope_args().
+	 */
+	public const CAP_EDIT_OTHERS_BOOKS = 'edit_others_sb_books';
+
+	/**
 	 * {@inheritDoc}
 	 */
 	public function register_hooks(): void {
@@ -56,6 +67,23 @@ final class BookPostType implements Hookable {
 	}
 
 	/**
+	 * WP_Query/get_posts() args that scope a books query to the current
+	 * user's own books, or no scoping at all for a user allowed to see
+	 * everyone's. Shared by every screen that lists, exports, or bulk
+	 * prints books, so "own books only" roles can't be bypassed on one
+	 * screen just because another screen forgot to add the check.
+	 *
+	 * @return array<string, int>
+	 */
+	public static function author_scope_args(): array {
+		if ( current_user_can( self::CAP_EDIT_OTHERS_BOOKS ) ) {
+			return array();
+		}
+
+		return array( 'author' => get_current_user_id() );
+	}
+
+	/**
 	 * Meta capability => custom capability map used by both the post type
 	 * registration and Core\Activator's role capability grant.
 	 *
@@ -63,20 +91,20 @@ final class BookPostType implements Hookable {
 	 */
 	public static function capabilities(): array {
 		return array(
-			'edit_post'             => 'edit_sb_book',
-			'read_post'             => 'read_sb_book',
-			'delete_post'           => 'delete_sb_book',
-			'edit_posts'            => self::CAP_EDIT_BOOKS,
-			'edit_others_posts'     => 'edit_others_sb_books',
-			'publish_posts'         => 'publish_sb_books',
-			'read_private_posts'    => 'read_private_sb_books',
-			'delete_posts'          => 'delete_sb_books',
-			'delete_private_posts'  => 'delete_private_sb_books',
+			'edit_post'              => 'edit_sb_book',
+			'read_post'              => 'read_sb_book',
+			'delete_post'            => 'delete_sb_book',
+			'edit_posts'             => self::CAP_EDIT_BOOKS,
+			'edit_others_posts'      => self::CAP_EDIT_OTHERS_BOOKS,
+			'publish_posts'          => 'publish_sb_books',
+			'read_private_posts'     => 'read_private_sb_books',
+			'delete_posts'           => 'delete_sb_books',
+			'delete_private_posts'   => 'delete_private_sb_books',
 			'delete_published_posts' => 'delete_published_sb_books',
-			'delete_others_posts'   => 'delete_others_sb_books',
-			'edit_private_posts'    => 'edit_private_sb_books',
-			'edit_published_posts'  => 'edit_published_sb_books',
-			'create_posts'          => 'create_sb_books',
+			'delete_others_posts'    => 'delete_others_sb_books',
+			'edit_private_posts'     => 'edit_private_sb_books',
+			'edit_published_posts'   => 'edit_published_sb_books',
+			'create_posts'           => 'create_sb_books',
 		);
 	}
 
@@ -128,31 +156,31 @@ final class BookPostType implements Hookable {
 	 */
 	private function labels(): array {
 		return array(
-			'name'                     => _x( 'Books', 'Post type general name', 'smartbook' ),
-			'singular_name'            => _x( 'Book', 'Post type singular name', 'smartbook' ),
-			'menu_name'                => _x( 'SmartBook', 'Admin Menu text', 'smartbook' ),
-			'name_admin_bar'           => _x( 'Book', 'Add New on Toolbar', 'smartbook' ),
-			'add_new'                  => __( 'Add New', 'smartbook' ),
-			'add_new_item'             => __( 'Add New Book', 'smartbook' ),
-			'new_item'                 => __( 'New Book', 'smartbook' ),
-			'edit_item'                => __( 'Edit Book', 'smartbook' ),
-			'view_item'                => __( 'View Book', 'smartbook' ),
-			'view_items'               => __( 'View Books', 'smartbook' ),
-			'all_items'                => __( 'All Books', 'smartbook' ),
-			'search_items'             => __( 'Search Books', 'smartbook' ),
-			'parent_item_colon'        => __( 'Parent Book:', 'smartbook' ),
-			'not_found'                => __( 'No books found.', 'smartbook' ),
-			'not_found_in_trash'       => __( 'No books found in Trash.', 'smartbook' ),
-			'featured_image'           => _x( 'Book Cover Image', 'Overrides the "Featured Image" phrase', 'smartbook' ),
-			'set_featured_image'       => _x( 'Set cover image', 'Overrides the "Set featured image" phrase', 'smartbook' ),
-			'remove_featured_image'    => _x( 'Remove cover image', 'Overrides the "Remove featured image" phrase', 'smartbook' ),
-			'use_featured_image'       => _x( 'Use as cover image', 'Overrides the "Use as featured image" phrase', 'smartbook' ),
-			'archives'                 => _x( 'Book archives', 'The post type archive label used in nav menus', 'smartbook' ),
-			'insert_into_item'         => _x( 'Insert into book', 'Overrides the "Insert into post" phrase', 'smartbook' ),
-			'uploaded_to_this_item'    => _x( 'Uploaded to this book', 'Overrides the "Uploaded to this post" phrase', 'smartbook' ),
-			'filter_items_list'        => _x( 'Filter books list', 'Screen reader text for the filter links', 'smartbook' ),
-			'items_list_navigation'    => _x( 'Books list navigation', 'Screen reader text for the pagination', 'smartbook' ),
-			'items_list'               => _x( 'Books list', 'Screen reader text for the items list', 'smartbook' ),
+			'name'                  => _x( 'Books', 'Post type general name', 'smartbook' ),
+			'singular_name'         => _x( 'Book', 'Post type singular name', 'smartbook' ),
+			'menu_name'             => _x( 'SmartBook', 'Admin Menu text', 'smartbook' ),
+			'name_admin_bar'        => _x( 'Book', 'Add New on Toolbar', 'smartbook' ),
+			'add_new'               => __( 'Add New', 'smartbook' ),
+			'add_new_item'          => __( 'Add New Book', 'smartbook' ),
+			'new_item'              => __( 'New Book', 'smartbook' ),
+			'edit_item'             => __( 'Edit Book', 'smartbook' ),
+			'view_item'             => __( 'View Book', 'smartbook' ),
+			'view_items'            => __( 'View Books', 'smartbook' ),
+			'all_items'             => __( 'All Books', 'smartbook' ),
+			'search_items'          => __( 'Search Books', 'smartbook' ),
+			'parent_item_colon'     => __( 'Parent Book:', 'smartbook' ),
+			'not_found'             => __( 'No books found.', 'smartbook' ),
+			'not_found_in_trash'    => __( 'No books found in Trash.', 'smartbook' ),
+			'featured_image'        => _x( 'Book Cover Image', 'Overrides the "Featured Image" phrase', 'smartbook' ),
+			'set_featured_image'    => _x( 'Set cover image', 'Overrides the "Set featured image" phrase', 'smartbook' ),
+			'remove_featured_image' => _x( 'Remove cover image', 'Overrides the "Remove featured image" phrase', 'smartbook' ),
+			'use_featured_image'    => _x( 'Use as cover image', 'Overrides the "Use as featured image" phrase', 'smartbook' ),
+			'archives'              => _x( 'Book archives', 'The post type archive label used in nav menus', 'smartbook' ),
+			'insert_into_item'      => _x( 'Insert into book', 'Overrides the "Insert into post" phrase', 'smartbook' ),
+			'uploaded_to_this_item' => _x( 'Uploaded to this book', 'Overrides the "Uploaded to this post" phrase', 'smartbook' ),
+			'filter_items_list'     => _x( 'Filter books list', 'Screen reader text for the filter links', 'smartbook' ),
+			'items_list_navigation' => _x( 'Books list navigation', 'Screen reader text for the pagination', 'smartbook' ),
+			'items_list'            => _x( 'Books list', 'Screen reader text for the items list', 'smartbook' ),
 		);
 	}
 }

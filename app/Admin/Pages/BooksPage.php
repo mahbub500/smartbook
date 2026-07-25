@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Admin\Pages;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\Admin\Support\RedirectsWithNotice;
 use SmartBook\Admin\Tables\BooksListTable;
 use SmartBook\MetaBoxes\BookFields;
@@ -43,6 +47,8 @@ final class BooksPage {
 	private const BULK_EDIT_NONCE_ACTION = 'sb_bulk_edit_apply';
 
 	/**
+	 * Create the books page.
+	 *
 	 * @param BarcodeManager $barcodes Barcode storage/lifecycle manager, used by the "Search by barcode" scan box.
 	 */
 	public function __construct( private readonly BarcodeManager $barcodes ) {
@@ -120,10 +126,13 @@ final class BooksPage {
 	 * JavaScript is needed for the scan-to-open flow itself.
 	 */
 	private function maybe_handle_barcode_scan(): void {
+		// Read-only: a lookup-and-redirect (or "not found" notice), not a mutation.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( ! isset( $_GET['sb_barcode_scan'] ) ) {
 			return;
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$value = sanitize_text_field( wp_unslash( $_GET['sb_barcode_scan'] ) );
 
 		if ( '' === $value ) {
@@ -212,13 +221,21 @@ final class BooksPage {
 			'sb_book_id'      => $ids,
 		);
 
-		wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
+		$url = wp_nonce_url(
+			add_query_arg( $args, admin_url( 'admin.php' ) ),
+			AbstractLabelsPage::print_nonce_action( $page_slug )
+		);
+
+		wp_safe_redirect( $url );
 
 		exit;
 	}
 
 	/**
 	 * Translated, pluralized confirmation message for a processed action.
+	 *
+	 * @param string $action Processed action: "trash", "untrash", or "delete".
+	 * @param int    $count  Number of posts the action was applied to.
 	 */
 	private function row_action_message( string $action, int $count ): string {
 		return match ( $action ) {
@@ -236,6 +253,9 @@ final class BooksPage {
 	 * Whether the intermediate bulk-edit form itself is being submitted.
 	 */
 	private function is_bulk_edit_apply_request(): bool {
+		// Only detects which mode to render; the nonce is verified in
+		// handle_bulk_edit_apply() before anything is actually written.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
 		return isset( $_POST['sb_bulk_edit_apply'] ) && '1' === $_POST['sb_bulk_edit_apply'];
 	}
 
@@ -264,7 +284,7 @@ final class BooksPage {
 		echo '<input type="hidden" name="sb_bulk_edit_apply" value="1" />';
 
 		foreach ( $ids as $id ) {
-			printf( '<input type="hidden" name="sb_book_id[]" value="%d" />', $id );
+			printf( '<input type="hidden" name="sb_book_id[]" value="%d" />', $id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- the "%d" specifier already coerces to an integer, no HTML can pass through.
 		}
 
 		$this->render_bulk_select( 'sb_bulk_genre', __( 'Genre', 'smartbook' ), $this->term_options( GenreTaxonomy::SLUG ) );
@@ -293,6 +313,8 @@ final class BooksPage {
 	/**
 	 * Render one "No Change" + options <select> for the bulk-edit form.
 	 *
+	 * @param string                $name    Field name/id.
+	 * @param string                $label   Field label.
 	 * @param array<string, string> $options Value => label pairs.
 	 */
 	private function render_bulk_select( string $name, string $label, array $options ): void {
@@ -331,11 +353,11 @@ final class BooksPage {
 				continue;
 			}
 
-			if ( '' !== $genre ) {
+			if ( '' !== $genre && term_exists( $genre, GenreTaxonomy::SLUG ) ) {
 				wp_set_object_terms( $id, array( $genre ), GenreTaxonomy::SLUG );
 			}
 
-			if ( '' !== $shelf ) {
+			if ( '' !== $shelf && term_exists( $shelf, ShelfTaxonomy::SLUG ) ) {
 				wp_set_object_terms( $id, array( $shelf ), ShelfTaxonomy::SLUG );
 			}
 
@@ -362,6 +384,8 @@ final class BooksPage {
 
 	/**
 	 * Term slug => name options for a taxonomy <select>.
+	 *
+	 * @param string $taxonomy Taxonomy slug.
 	 *
 	 * @return array<string, string>
 	 */
@@ -393,10 +417,15 @@ final class BooksPage {
 	 * @return int[]
 	 */
 	private function requested_ids(): array {
+		// Only parses which IDs were selected; every action that acts on
+		// them (trash/untrash/delete/bulk-edit) verifies its own nonce
+		// before doing anything, see this class's docblock.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( ! isset( $_REQUEST['sb_book_id'] ) ) {
 			return array();
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- every element is absint()'d below.
 		$raw = wp_unslash( $_REQUEST['sb_book_id'] );
 		$raw = is_array( $raw ) ? $raw : array( $raw );
 

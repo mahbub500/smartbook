@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Services;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use Picqer\Barcode\BarcodeGenerator as PicqerBarcodeGenerator;
 use Picqer\Barcode\BarcodeGeneratorSVG;
 use Picqer\Barcode\Exceptions\BarcodeException;
@@ -23,6 +27,8 @@ final class BarcodeGenerator {
 
 	/**
 	 * Render $value as a Code128 barcode, as raw SVG markup.
+	 *
+	 * @param string $value Value to encode.
 	 *
 	 * @throws BarcodeException If the value contains characters Code128 cannot encode.
 	 */

@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Services;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * A minimal, PSR-3-shaped leveled logger contract. Kept as an interface
  * so any consumer can be tested against a fake logger instead of writing

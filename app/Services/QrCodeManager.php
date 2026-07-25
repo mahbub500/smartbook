@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Services;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use chillerlan\QRCode\Output\QRCodeOutputException;
 use SmartBook\PostTypes\BookPostType;
 use WP_Post;
@@ -38,6 +42,8 @@ final class QrCodeManager {
 	private const DIRECTORY_NAME = 'sb-qrcodes';
 
 	/**
+	 * Create the QR code manager.
+	 *
 	 * @param QrCodeGenerator $generator SVG QR code renderer.
 	 * @param LoggerInterface $logger    Logger, used when generation fails.
 	 */
@@ -50,6 +56,8 @@ final class QrCodeManager {
 	/**
 	 * Public URL of a book's QR code image, or '' if none has been
 	 * generated yet.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	public function url_for( int $post_id ): string {
 		return (string) get_post_meta( $post_id, self::META_URL, true );
@@ -57,6 +65,8 @@ final class QrCodeManager {
 
 	/**
 	 * Whether a book already has a generated QR code.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	public function has_qr_code( int $post_id ): bool {
 		return '' !== $this->url_for( $post_id );
@@ -64,6 +74,8 @@ final class QrCodeManager {
 
 	/**
 	 * Generate the QR code only if one doesn't already exist.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	public function ensure_generated( int $post_id ): void {
 		if ( $this->has_qr_code( $post_id ) ) {
@@ -76,6 +88,8 @@ final class QrCodeManager {
 	/**
 	 * (Re)generate a book's QR code, encoding its current permalink,
 	 * overwriting any previous image.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	public function regenerate( int $post_id ): bool {
 		$post = get_post( $post_id );
@@ -125,6 +139,8 @@ final class QrCodeManager {
 	/**
 	 * Remove a book's stored QR image file and its meta, e.g. when the
 	 * book is permanently deleted.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	public function delete_for_post( int $post_id ): void {
 		$file_path = trailingslashit( $this->directory() ) . $post_id . '.svg';
@@ -154,12 +170,16 @@ final class QrCodeManager {
 
 	/**
 	 * Guard against directory listing, matching Services\Logger's pattern.
+	 *
+	 * @param string $directory Absolute path to the directory to guard.
 	 */
 	private function ensure_index_file( string $directory ): void {
 		$index_file = trailingslashit( $directory ) . 'index.php';
 
 		if ( ! file_exists( $index_file ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			// Best-effort directory-listing guard; a failure here is not
+			// worth surfacing, matching Services\Logger's own suppression.
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.PHP.NoSilencedErrors.Discouraged
 			@file_put_contents( $index_file, "<?php\n// Silence is golden.\n" );
 		}
 	}

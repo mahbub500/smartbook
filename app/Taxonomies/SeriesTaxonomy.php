@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Taxonomies;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Flat (tag-style) list of book series. Not hierarchical: a series is a
  * named grouping, not a nested classification.

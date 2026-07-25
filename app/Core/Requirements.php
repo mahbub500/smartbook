@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Core;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Verifies the host environment satisfies the plugin's minimum requirements.
  */

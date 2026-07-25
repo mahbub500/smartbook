@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\MetaBoxes;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\Core\AbstractServiceProvider;
 use SmartBook\Core\Contracts\ContainerInterface;
 use SmartBook\Services\BarcodeManager;
@@ -21,6 +25,8 @@ final class MetaBoxServiceProvider extends AbstractServiceProvider {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param ContainerInterface $container Application service container.
 	 */
 	public function register( ContainerInterface $container ): void {
 		$container->singleton( BookDetailsMetaBox::class, static fn (): BookDetailsMetaBox => new BookDetailsMetaBox() );
@@ -38,6 +44,8 @@ final class MetaBoxServiceProvider extends AbstractServiceProvider {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param ContainerInterface $container Application service container.
 	 */
 	public function boot( ContainerInterface $container ): void {
 		$container->make( BookDetailsMetaBox::class )->register_hooks();

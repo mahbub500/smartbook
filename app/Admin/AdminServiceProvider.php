@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Admin;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\Admin\Pages\BarcodeLabelsPage;
 use SmartBook\Admin\Pages\BooksPage;
 use SmartBook\Admin\Pages\DashboardPage;
@@ -32,6 +36,8 @@ final class AdminServiceProvider extends AbstractServiceProvider {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param ContainerInterface $container Application service container.
 	 */
 	public function register( ContainerInterface $container ): void {
 		$container->singleton( BookStats::class, static fn (): BookStats => new BookStats() );
@@ -95,6 +101,8 @@ final class AdminServiceProvider extends AbstractServiceProvider {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param ContainerInterface $container Application service container.
 	 */
 	public function boot( ContainerInterface $container ): void {
 		$container->make( AdminMenu::class )->register_hooks();

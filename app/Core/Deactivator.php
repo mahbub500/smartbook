@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Core;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Runs every time the plugin is deactivated. Must not delete user data;
  * that is the responsibility of the uninstall handler.

@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Services;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\Core\AbstractServiceProvider;
 use SmartBook\Core\Contracts\ContainerInterface;
 use SmartBook\PostTypes\BookPostType;
@@ -23,12 +27,14 @@ use WP_Post;
 final class BarcodeServiceProvider extends AbstractServiceProvider {
 
 	/**
-	 * admin-post.php action name for the manual regenerate button.
+	 * Admin-post.php action name for the manual regenerate button.
 	 */
 	public const REGENERATE_ACTION = 'sb_regenerate_barcode';
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param ContainerInterface $container Application service container.
 	 */
 	public function register( ContainerInterface $container ): void {
 		$container->singleton( BarcodeGenerator::class, static fn (): BarcodeGenerator => new BarcodeGenerator() );
@@ -44,6 +50,8 @@ final class BarcodeServiceProvider extends AbstractServiceProvider {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param ContainerInterface $container Application service container.
 	 */
 	public function boot( ContainerInterface $container ): void {
 		$manager = $container->make( BarcodeManager::class );
@@ -79,6 +87,11 @@ final class BarcodeServiceProvider extends AbstractServiceProvider {
 		add_action(
 			'admin_post_' . self::REGENERATE_ACTION,
 			static function () use ( $manager ): void {
+				// The nonce action string is per-post ("..._{$post_id}"), so
+				// post_id has to be read before it can be verified below;
+				// it is only used for that nonce string and the capability
+				// check, both of which gate the actual regenerate() call.
+				// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 				$post_id = isset( $_GET['post_id'] ) ? absint( $_GET['post_id'] ) : 0;
 
 				if ( $post_id <= 0 || ! current_user_can( 'edit_post', $post_id ) ) {

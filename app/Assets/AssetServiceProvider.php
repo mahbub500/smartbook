@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Assets;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\Core\AbstractServiceProvider;
 use SmartBook\Core\Contracts\ContainerInterface;
 
@@ -19,6 +23,8 @@ final class AssetServiceProvider extends AbstractServiceProvider {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param ContainerInterface $container Application service container.
 	 */
 	public function register( ContainerInterface $container ): void {
 		$container->singleton( AdminAssetLoader::class, static fn (): AdminAssetLoader => new AdminAssetLoader() );
@@ -27,6 +33,8 @@ final class AssetServiceProvider extends AbstractServiceProvider {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param ContainerInterface $container Application service container.
 	 */
 	public function boot( ContainerInterface $container ): void {
 		$container->make( AdminAssetLoader::class )->register_hooks();

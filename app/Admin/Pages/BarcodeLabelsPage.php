@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Admin\Pages;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\Services\BarcodeManager;
 
 /**
@@ -20,6 +24,8 @@ use SmartBook\Services\BarcodeManager;
 final class BarcodeLabelsPage extends AbstractLabelsPage {
 
 	/**
+	 * Constructor.
+	 *
 	 * @param BarcodeManager $barcodes Barcode storage/lifecycle manager.
 	 */
 	public function __construct( private readonly BarcodeManager $barcodes ) {
@@ -48,6 +54,8 @@ final class BarcodeLabelsPage extends AbstractLabelsPage {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	protected function ensure_asset( int $post_id ): void {
 		$this->barcodes->ensure_generated( $post_id );
@@ -55,6 +63,8 @@ final class BarcodeLabelsPage extends AbstractLabelsPage {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	protected function image_url( int $post_id ): string {
 		return $this->barcodes->url_for( $post_id );
@@ -72,6 +82,8 @@ final class BarcodeLabelsPage extends AbstractLabelsPage {
 	 *
 	 * Barcode labels also print the human-readable value under the
 	 * bars, standard practice for physical barcode labels.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	protected function extra_label_content( int $post_id ): string {
 		$value = $this->barcodes->value_for( $post_id );

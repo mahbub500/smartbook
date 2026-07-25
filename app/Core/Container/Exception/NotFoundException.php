@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Core\Container\Exception;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use RuntimeException;
 
 /**

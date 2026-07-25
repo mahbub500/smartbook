@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Taxonomies;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\Core\AbstractServiceProvider;
 use SmartBook\Core\Contracts\ContainerInterface;
 
@@ -38,6 +42,8 @@ final class TaxonomyServiceProvider extends AbstractServiceProvider {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param ContainerInterface $container Application service container.
 	 */
 	public function register( ContainerInterface $container ): void {
 		foreach ( self::TAXONOMIES as $taxonomy_class ) {
@@ -47,6 +53,8 @@ final class TaxonomyServiceProvider extends AbstractServiceProvider {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param ContainerInterface $container Application service container.
 	 */
 	public function boot( ContainerInterface $container ): void {
 		foreach ( self::TAXONOMIES as $taxonomy_class ) {

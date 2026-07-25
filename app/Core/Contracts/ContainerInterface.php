@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Core\Contracts;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use Closure;
 
 /**
@@ -23,37 +27,37 @@ interface ContainerInterface {
 	/**
 	 * Register a binding, resolved fresh on every call to make()/get().
 	 *
-	 * @param string         $abstract Identifier to bind (usually a class or interface name).
+	 * @param string         $abstract_id Identifier to bind (usually a class or interface name).
 	 * @param Closure|string $concrete Factory closure or a class name to instantiate.
 	 */
-	public function bind( string $abstract, Closure|string $concrete ): void;
+	public function bind( string $abstract_id, Closure|string $concrete ): void;
 
 	/**
 	 * Register a binding that is resolved once and then reused.
 	 *
-	 * @param string         $abstract Identifier to bind (usually a class or interface name).
+	 * @param string         $abstract_id Identifier to bind (usually a class or interface name).
 	 * @param Closure|string $concrete Factory closure or a class name to instantiate.
 	 */
-	public function singleton( string $abstract, Closure|string $concrete ): void;
+	public function singleton( string $abstract_id, Closure|string $concrete ): void;
 
 	/**
 	 * Register an already-constructed object as a shared instance.
 	 *
-	 * @param string $abstract Identifier to bind.
+	 * @param string $abstract_id Identifier to bind.
 	 * @param object $instance Fully constructed instance.
 	 */
-	public function instance( string $abstract, object $instance ): void;
+	public function instance( string $abstract_id, object $instance ): void;
 
 	/**
 	 * Resolve an identifier out of the container, autowiring constructor
 	 * dependencies via reflection when no explicit binding exists.
 	 *
-	 * @param string               $abstract   Identifier to resolve.
+	 * @param string               $abstract_id   Identifier to resolve.
 	 * @param array<string, mixed> $parameters Explicit constructor parameters, keyed by name.
 	 *
 	 * @return mixed
 	 */
-	public function make( string $abstract, array $parameters = array() ): mixed;
+	public function make( string $abstract_id, array $parameters = array() ): mixed;
 
 	/**
 	 * PSR-11 style alias for make() with no parameters.

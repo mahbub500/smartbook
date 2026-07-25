@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Core\Contracts;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * A service provider wires one module (Settings, Assets, PostTypes, ...)
  * into the plugin: register() binds services into the container, boot()

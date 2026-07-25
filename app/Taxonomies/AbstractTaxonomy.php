@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Taxonomies;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\Core\Contracts\Hookable;
 use SmartBook\PostTypes\BookPostType;
 
@@ -150,42 +154,42 @@ abstract class AbstractTaxonomy implements Hookable {
 		$plural   = $this->plural_name();
 
 		$labels = array(
-			'name'          => $plural,
-			'singular_name' => $singular,
-			'menu_name'     => $plural,
+			'name'                  => $plural,
+			'singular_name'         => $singular,
+			'menu_name'             => $plural,
 			/* translators: %s: taxonomy plural label. */
-			'all_items'     => sprintf( __( 'All %s', 'smartbook' ), $plural ),
+			'all_items'             => sprintf( __( 'All %s', 'smartbook' ), $plural ),
 			/* translators: %s: taxonomy singular label. */
-			'edit_item'     => sprintf( __( 'Edit %s', 'smartbook' ), $singular ),
+			'edit_item'             => sprintf( __( 'Edit %s', 'smartbook' ), $singular ),
 			/* translators: %s: taxonomy singular label. */
-			'view_item'     => sprintf( __( 'View %s', 'smartbook' ), $singular ),
+			'view_item'             => sprintf( __( 'View %s', 'smartbook' ), $singular ),
 			/* translators: %s: taxonomy singular label. */
-			'update_item'   => sprintf( __( 'Update %s', 'smartbook' ), $singular ),
+			'update_item'           => sprintf( __( 'Update %s', 'smartbook' ), $singular ),
 			/* translators: %s: taxonomy singular label. */
-			'add_new_item'  => sprintf( __( 'Add New %s', 'smartbook' ), $singular ),
+			'add_new_item'          => sprintf( __( 'Add New %s', 'smartbook' ), $singular ),
 			/* translators: %s: taxonomy singular label. */
-			'new_item_name' => sprintf( __( 'New %s Name', 'smartbook' ), $singular ),
+			'new_item_name'         => sprintf( __( 'New %s Name', 'smartbook' ), $singular ),
 			/* translators: %s: taxonomy plural label. */
-			'search_items'  => sprintf( __( 'Search %s', 'smartbook' ), $plural ),
+			'search_items'          => sprintf( __( 'Search %s', 'smartbook' ), $plural ),
 			/* translators: %s: taxonomy plural label. */
-			'not_found'     => sprintf( __( 'No %s found.', 'smartbook' ), $plural ),
+			'not_found'             => sprintf( __( 'No %s found.', 'smartbook' ), $plural ),
 			/* translators: %s: taxonomy plural label. */
-			'no_terms'      => sprintf( __( 'No %s', 'smartbook' ), $plural ),
+			'no_terms'              => sprintf( __( 'No %s', 'smartbook' ), $plural ),
 			/* translators: %s: taxonomy plural label. */
 			'items_list_navigation' => sprintf( __( '%s list navigation', 'smartbook' ), $plural ),
 			/* translators: %s: taxonomy plural label. */
-			'items_list'    => sprintf( __( '%s list', 'smartbook' ), $plural ),
+			'items_list'            => sprintf( __( '%s list', 'smartbook' ), $plural ),
 			/* translators: %s: taxonomy plural label. */
-			'back_to_items' => sprintf( __( '&larr; Go to %s', 'smartbook' ), $plural ),
+			'back_to_items'         => sprintf( __( '&larr; Go to %s', 'smartbook' ), $plural ),
 		);
 
 		if ( $this->hierarchical() ) {
 			/* translators: %s: taxonomy singular label. */
-			$labels['parent_item']       = sprintf( __( 'Parent %s', 'smartbook' ), $singular );
+			$labels['parent_item'] = sprintf( __( 'Parent %s', 'smartbook' ), $singular );
 			/* translators: %s: taxonomy singular label. */
 			$labels['parent_item_colon'] = sprintf( __( 'Parent %s:', 'smartbook' ), $singular );
 			/* translators: %s: taxonomy singular label. */
-			$labels['filter_by_item']    = sprintf( __( 'Filter by %s', 'smartbook' ), $singular );
+			$labels['filter_by_item'] = sprintf( __( 'Filter by %s', 'smartbook' ), $singular );
 
 			return $labels;
 		}

@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Core;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use RuntimeException;
 use SmartBook\Admin\AdminServiceProvider;
 use SmartBook\Assets\AssetServiceProvider;
@@ -36,6 +40,8 @@ final class Plugin {
 
 	/**
 	 * The single instance of this class.
+	 *
+	 * @var self|null
 	 */
 	private static ?self $instance = null;
 
@@ -64,6 +70,8 @@ final class Plugin {
 
 	/**
 	 * Application service container.
+	 *
+	 * @var ContainerInterface
 	 */
 	private ContainerInterface $container;
 
@@ -76,6 +84,8 @@ final class Plugin {
 
 	/**
 	 * Whether boot() has already run.
+	 *
+	 * @var bool
 	 */
 	private bool $booted = false;
 
@@ -135,7 +145,11 @@ final class Plugin {
 	 */
 	private function register_providers(): void {
 		foreach ( self::PROVIDERS as $provider_class ) {
-			/** @var ServiceProviderInterface $provider */
+			/**
+			 * Concrete provider instance.
+			 *
+			 * @var ServiceProviderInterface $provider
+			 */
 			$provider = new $provider_class();
 			$provider->register( $this->container );
 
@@ -160,6 +174,8 @@ final class Plugin {
 
 	/**
 	 * Singletons must not be unserializable.
+	 *
+	 * @throws RuntimeException Always, to prevent unserializing a singleton.
 	 */
 	public function __wakeup(): void {
 		throw new RuntimeException( 'Cannot unserialize a singleton.' );

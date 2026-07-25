@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Taxonomies;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Flat (tag-style) list of book languages. Not hierarchical: languages
  * do not nest under one another.

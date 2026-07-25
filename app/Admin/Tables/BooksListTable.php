@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace SmartBook\Admin\Tables;
 
+use SmartBook\Admin\Pages\AbstractLabelsPage;
 use SmartBook\PostTypes\BookPostType;
 use SmartBook\Taxonomies\AuthorTaxonomy;
 use SmartBook\Taxonomies\GenreTaxonomy;
@@ -33,6 +34,9 @@ if ( ! class_exists( WP_List_Table::class ) ) {
  */
 final class BooksListTable extends WP_List_Table {
 
+	/**
+	 * Set up the list table's singular/plural labels.
+	 */
 	public function __construct() {
 		parent::__construct(
 			array(
@@ -136,6 +140,8 @@ final class BooksListTable extends WP_List_Table {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string $which Whether this is the "top" or "bottom" tablenav.
 	 */
 	protected function extra_tablenav( $which ): void {
 		if ( 'top' !== $which ) {
@@ -149,6 +155,8 @@ final class BooksListTable extends WP_List_Table {
 
 		printf(
 			'<label class="sb-books-filters__favorite"><input type="checkbox" name="sb_favorite" value="1" %s /> %s</label>',
+			// Read-only: only reflects the current filter state of this GET request back into the checkbox, no data is written.
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			checked( isset( $_REQUEST['sb_favorite'] ) && '1' === $_REQUEST['sb_favorite'], true, false ),
 			esc_html__( 'Favorites only', 'smartbook' )
 		);
@@ -162,18 +170,23 @@ final class BooksListTable extends WP_List_Table {
 	 * {@inheritDoc}
 	 */
 	public function prepare_items(): void {
-		$sortable               = $this->get_sortable_columns();
+		$sortable              = $this->get_sortable_columns();
 		$this->_column_headers = array( $this->get_columns(), array(), $sortable );
 
 		$per_page     = $this->get_items_per_page( 'sb_books_per_page', 20 );
 		$current_page = $this->get_pagenum();
 
-		$args = array(
-			'post_type'      => BookPostType::SLUG,
-			'post_status'    => '' === $this->current_status() ? array( 'publish', 'draft', 'pending', 'private' ) : $this->current_status(),
-			'posts_per_page' => $per_page,
-			'paged'          => $current_page,
-			's'              => isset( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['s'] ) ) : '',
+		$args = array_merge(
+			array(
+				'post_type'      => BookPostType::SLUG,
+				'post_status'    => '' === $this->current_status() ? array( 'publish', 'draft', 'pending', 'private' ) : $this->current_status(),
+				'posts_per_page' => $per_page,
+				'paged'          => $current_page,
+				// Read-only: a search/list-table query filter, not a mutation.
+				// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+				's'              => isset( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['s'] ) ) : '',
+			),
+			BookPostType::author_scope_args()
 		);
 
 		$this->apply_sort_args( $args );
@@ -412,15 +425,19 @@ final class BooksListTable extends WP_List_Table {
 	 * URL to this book's single-label print sheet for a given label page.
 	 *
 	 * @param string $page_slug Either "sb_qr_labels" or "sb_barcode_labels".
+	 * @param int    $post_id   Book post ID.
 	 */
 	private function print_label_url( string $page_slug, int $post_id ): string {
-		return add_query_arg(
-			array(
-				'page'            => $page_slug,
-				'sb_book_id'      => array( $post_id ),
-				'sb_print_labels' => '1',
+		return wp_nonce_url(
+			add_query_arg(
+				array(
+					'page'            => $page_slug,
+					'sb_book_id'      => array( $post_id ),
+					'sb_print_labels' => '1',
+				),
+				admin_url( 'admin.php' )
 			),
-			admin_url( 'admin.php' )
+			AbstractLabelsPage::print_nonce_action( $page_slug )
 		);
 	}
 
@@ -428,14 +445,17 @@ final class BooksListTable extends WP_List_Table {
 	 * Build a nonce-protected URL for a single-row trash/untrash/delete
 	 * action, reusing the same "bulk-books" nonce action the bulk action
 	 * dropdown itself uses.
+	 *
+	 * @param string $action  One of "trash", "untrash", or "delete".
+	 * @param int    $post_id Book post ID.
 	 */
 	private function row_action_url( string $action, int $post_id ): string {
 		return wp_nonce_url(
 			add_query_arg(
 				array(
-					'page'        => 'sb_books',
-					'action'      => $action,
-					'sb_book_id'  => array( $post_id ),
+					'page'       => 'sb_books',
+					'action'     => $action,
+					'sb_book_id' => array( $post_id ),
 				),
 				admin_url( 'admin.php' )
 			),
@@ -445,6 +465,10 @@ final class BooksListTable extends WP_List_Table {
 
 	/**
 	 * Render a taxonomy term <select> filter.
+	 *
+	 * @param string $taxonomy    Taxonomy slug to list terms for.
+	 * @param string $request_key Query arg the selected term is read from/written to.
+	 * @param string $all_label   Label for the "no filter" option.
 	 */
 	private function render_taxonomy_filter( string $taxonomy, string $request_key, string $all_label ): void {
 		$terms = get_terms(
@@ -458,6 +482,8 @@ final class BooksListTable extends WP_List_Table {
 			return;
 		}
 
+		// Read-only: reflects the current filter selection back into the <select>, not a mutation.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$selected = isset( $_REQUEST[ $request_key ] ) ? sanitize_key( wp_unslash( $_REQUEST[ $request_key ] ) ) : '';
 
 		printf( '<select name="%s">', esc_attr( $request_key ) );
@@ -477,6 +503,9 @@ final class BooksListTable extends WP_List_Table {
 
 	/**
 	 * Comma-separated list of term names for a taxonomy on one post.
+	 *
+	 * @param int    $post_id  Book post ID.
+	 * @param string $taxonomy Taxonomy slug.
 	 */
 	private function terms_list( int $post_id, string $taxonomy ): string {
 		$terms = get_the_terms( $post_id, $taxonomy );
@@ -494,8 +523,11 @@ final class BooksListTable extends WP_List_Table {
 	 * @param array<string, mixed> $args WP_Query args, modified in place.
 	 */
 	private function apply_sort_args( array &$args ): void {
+		// Read-only: sort column/direction for a query, not a mutation.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$orderby = isset( $_REQUEST['orderby'] ) ? sanitize_key( wp_unslash( $_REQUEST['orderby'] ) ) : 'date';
-		$order   = isset( $_REQUEST['order'] ) && 'asc' === strtolower( sanitize_key( wp_unslash( $_REQUEST['order'] ) ) ) ? 'ASC' : 'DESC';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$order = isset( $_REQUEST['order'] ) && 'asc' === strtolower( sanitize_key( wp_unslash( $_REQUEST['order'] ) ) ) ? 'ASC' : 'DESC';
 
 		if ( 'sb_rating' === $orderby ) {
 			$args['meta_key'] = 'sb_rating'; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
@@ -525,7 +557,12 @@ final class BooksListTable extends WP_List_Table {
 	private function apply_filter_args( array &$args ): void {
 		$tax_query = array();
 
-		foreach ( array( GenreTaxonomy::SLUG => 'sb_genre', ShelfTaxonomy::SLUG => 'sb_shelf' ) as $taxonomy => $request_key ) {
+		foreach ( array(
+			GenreTaxonomy::SLUG => 'sb_genre',
+			ShelfTaxonomy::SLUG => 'sb_shelf',
+		) as $taxonomy => $request_key ) {
+			// Read-only: taxonomy filter for a query, not a mutation.
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			$slug = isset( $_REQUEST[ $request_key ] ) ? sanitize_key( wp_unslash( $_REQUEST[ $request_key ] ) ) : '';
 
 			if ( '' !== $slug ) {
@@ -541,6 +578,8 @@ final class BooksListTable extends WP_List_Table {
 			$args['tax_query'] = $tax_query; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
 		}
 
+		// Read-only: favorites-only filter for a query, not a mutation.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_REQUEST['sb_favorite'] ) && '1' === $_REQUEST['sb_favorite'] ) {
 			$args['meta_query'] = array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 				array(
@@ -555,6 +594,8 @@ final class BooksListTable extends WP_List_Table {
 	 * The currently requested post_status, or '' for "All".
 	 */
 	private function requested_status(): string {
+		// Read-only: status-tab filter for a query, not a mutation.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$status = isset( $_REQUEST['post_status'] ) ? sanitize_key( wp_unslash( $_REQUEST['post_status'] ) ) : '';
 
 		return in_array( $status, array( 'publish', 'draft', 'pending', 'private', 'trash' ), true ) ? $status : '';
@@ -569,6 +610,12 @@ final class BooksListTable extends WP_List_Table {
 
 	/**
 	 * Build one status view tab link.
+	 *
+	 * @param string $base_url Base URL to append the "post_status" query arg to.
+	 * @param string $status   Post status the tab links to, or '' for "All".
+	 * @param string $label    Tab label.
+	 * @param int    $count    Post count shown next to the label.
+	 * @param bool   $current  Whether this tab represents the currently requested status.
 	 */
 	private function view_link( string $base_url, string $status, string $label, int $count, bool $current ): string {
 		$url = '' === $status ? $base_url : add_query_arg( 'post_status', $status, $base_url );

@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Services;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use Picqer\Barcode\Exceptions\BarcodeException;
 use SmartBook\PostTypes\BookPostType;
 use WP_Post;
@@ -40,6 +44,8 @@ final class BarcodeManager {
 	private const DIRECTORY_NAME = 'sb-barcodes';
 
 	/**
+	 * Create the barcode manager.
+	 *
 	 * @param BarcodeGenerator $generator SVG Code128 renderer.
 	 * @param LoggerInterface  $logger    Logger, used when generation fails.
 	 */
@@ -51,6 +57,8 @@ final class BarcodeManager {
 
 	/**
 	 * A book's current barcode value, or '' if none has been assigned yet.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	public function value_for( int $post_id ): string {
 		return (string) get_post_meta( $post_id, self::META_VALUE, true );
@@ -59,6 +67,8 @@ final class BarcodeManager {
 	/**
 	 * Public URL of a book's barcode image, or '' if none has been
 	 * generated yet.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	public function url_for( int $post_id ): string {
 		return (string) get_post_meta( $post_id, self::META_IMAGE_URL, true );
@@ -66,6 +76,8 @@ final class BarcodeManager {
 
 	/**
 	 * Whether a book already has a generated barcode image.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	public function has_barcode( int $post_id ): bool {
 		return '' !== $this->url_for( $post_id );
@@ -74,6 +86,8 @@ final class BarcodeManager {
 	/**
 	 * Ensure a book has both a barcode value and a generated image,
 	 * assigning/rendering only what's missing.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	public function ensure_generated( int $post_id ): void {
 		$value = $this->ensure_value( $post_id );
@@ -87,6 +101,8 @@ final class BarcodeManager {
 	 * Re-render a book's barcode image from its current value,
 	 * overwriting any previous image. Assigns a value first if the book
 	 * doesn't have one yet.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	public function regenerate( int $post_id ): bool {
 		$post = get_post( $post_id );
@@ -100,6 +116,8 @@ final class BarcodeManager {
 
 	/**
 	 * Find the post a scanned barcode value belongs to.
+	 *
+	 * @param string $value Scanned barcode value.
 	 */
 	public function find_post_by_barcode( string $value ): ?int {
 		$value = trim( $value );
@@ -129,6 +147,8 @@ final class BarcodeManager {
 	/**
 	 * Remove a book's stored barcode image file and its meta, e.g. when
 	 * the book is permanently deleted.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	public function delete_for_post( int $post_id ): void {
 		$file_path = trailingslashit( $this->directory() ) . $post_id . '.svg';
@@ -152,6 +172,8 @@ final class BarcodeManager {
 	 * Return the book's barcode value, assigning a unique one
 	 * ("SB" + the zero-padded post ID, which is inherently unique) if
 	 * it doesn't have one yet.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function ensure_value( int $post_id ): string {
 		$value = $this->value_for( $post_id );
@@ -169,6 +191,9 @@ final class BarcodeManager {
 
 	/**
 	 * Render and save the barcode image for a given value.
+	 *
+	 * @param int    $post_id Book post ID.
+	 * @param string $value   Barcode value to render.
 	 */
 	private function render_image( int $post_id, string $value ): bool {
 		$directory = $this->directory();
@@ -198,7 +223,9 @@ final class BarcodeManager {
 
 		$file_path = trailingslashit( $directory ) . $post_id . '.svg';
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		// Failure is already handled via the return-value check below; the
+		// "@" only suppresses the redundant native PHP warning.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.PHP.NoSilencedErrors.Discouraged
 		if ( false === @file_put_contents( $file_path, $svg ) ) {
 			$this->logger->error( 'Could not write the barcode image file.', array( 'file' => $file_path ) );
 
@@ -214,12 +241,16 @@ final class BarcodeManager {
 
 	/**
 	 * Guard against directory listing, matching Services\Logger's pattern.
+	 *
+	 * @param string $directory Absolute path to the directory to guard.
 	 */
 	private function ensure_index_file( string $directory ): void {
 		$index_file = trailingslashit( $directory ) . 'index.php';
 
 		if ( ! file_exists( $index_file ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			// Best-effort directory-listing guard; a failure here is not
+			// worth surfacing, matching Services\Logger's own suppression.
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.PHP.NoSilencedErrors.Discouraged
 			@file_put_contents( $index_file, "<?php\n// Silence is golden.\n" );
 		}
 	}

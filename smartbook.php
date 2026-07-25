@@ -3,7 +3,7 @@
  * Plugin Name:       SmartBook
  * Plugin URI:        https://example.com/smartbook
  * Description:       A modular, production-ready WordPress plugin scaffold built on SOLID, PSR-4 and dependency injection principles.
- * Version:           1.0.0
+ * Version:           1.1.0
  * Requires at least: 6.4
  * Requires PHP:      8.2
  * Author:            SmartBook
@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // -----------------------------------------------------------------------
 // Core plugin constants.
 // -----------------------------------------------------------------------
-define( 'SB_VERSION', '1.0.0' );
+define( 'SB_VERSION', '1.1.0' );
 define( 'SB_FILE', __FILE__ );
 define( 'SB_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SB_URL', plugin_dir_url( __FILE__ ) );

@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace SmartBook\Admin\Pages;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SmartBook\Admin\Support\RedirectsWithNotice;
 use SmartBook\Core\Contracts\Hookable;
 use SmartBook\PostTypes\BookPostType;
@@ -57,12 +61,12 @@ final class ImportExportPage implements Hookable {
 	use RedirectsWithNotice;
 
 	/**
-	 * admin-post.php action name for exporting.
+	 * Admin-post.php action name for exporting.
 	 */
 	private const EXPORT_ACTION = 'sb_export_books';
 
 	/**
-	 * admin-post.php action name for importing.
+	 * Admin-post.php action name for importing.
 	 */
 	private const IMPORT_ACTION = 'sb_import_books';
 
@@ -326,12 +330,15 @@ final class ImportExportPage implements Hookable {
 	 */
 	private function export_rows(): array {
 		$posts = get_posts(
-			array(
-				'post_type'      => BookPostType::SLUG,
-				'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
-				'posts_per_page' => -1,
-				'orderby'        => 'title',
-				'order'          => 'ASC',
+			array_merge(
+				array(
+					'post_type'      => BookPostType::SLUG,
+					'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
+					'posts_per_page' => -1,
+					'orderby'        => 'title',
+					'order'          => 'ASC',
+				),
+				BookPostType::author_scope_args()
 			)
 		);
 
@@ -372,9 +379,8 @@ final class ImportExportPage implements Hookable {
 			return null;
 		}
 
-		$result['mode'] = $mode;
-
-		return $result;
+		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closes the "php://output" stream opened above, not a file on disk.
+		exit;
 	}
 
 	/**
@@ -386,59 +392,48 @@ final class ImportExportPage implements Hookable {
 	private function render_result_summary( array $result ): void {
 		printf( '<div class="sb-notice sb-notice--success sb-import-result"><p>%s</p>', esc_html( $this->summary_message( $result ) ) );
 
-		/** @var array<int, array<string, mixed>> $errors */
-		$errors = $result['errors'];
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotValidated -- nonce already verified above; UPLOAD_ERR_OK check below is exactly the existence/validity check the sniff is asking for.
+		if ( ! isset( $_FILES[ self::FILE_FIELD ] ) || UPLOAD_ERR_OK !== $_FILES[ self::FILE_FIELD ]['error'] ) {
+			$this->redirect_with_notice( 'error', __( 'Please choose a CSV file to upload.', 'smartbook' ) );
+		}
 
-		if ( array() !== $errors ) {
-			echo '<div class="sb-table-scroll"><table class="widefat striped sb-import-result__errors">';
-			echo '<thead><tr>';
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce already verified above; $_FILES is a server-populated superglobal, not free-form user text, and every value used below is separately validated (filetype) or read straight from disk (tmp_name).
+		$file     = $_FILES[ self::FILE_FIELD ];
+		$filetype = wp_check_filetype_and_ext( $file['tmp_name'], $file['name'], array( 'csv' => 'text/csv' ) );
 
 			foreach ( array( __( 'Row', 'smartbook' ), __( 'Title', 'smartbook' ), __( 'Error', 'smartbook' ) ) as $header ) {
 				printf( '<th>%s</th>', esc_html( $header ) );
 			}
 
-			echo '</tr></thead><tbody>';
+		$contents = $this->read_uploaded_file( $file['tmp_name'] );
 
-			foreach ( array_slice( $errors, 0, self::INLINE_ERROR_LIMIT ) as $error ) {
-				printf(
-					'<tr><td>%1$s</td><td>%2$s</td><td>%3$s</td></tr>',
-					esc_html( (string) ( $error['row'] ?? '' ) ),
-					esc_html( (string) ( $error['title'] ?? '' ) ),
-					esc_html( (string) ( $error['message'] ?? '' ) )
-				);
-			}
+		if ( false === $contents ) {
+			$this->redirect_with_notice( 'error', __( 'The uploaded file could not be read.', 'smartbook' ) );
+		}
 
-			echo '</tbody></table></div>';
+		// An in-memory stream (not a real filesystem path) so fgetcsv() can
+		// do RFC4180-correct parsing of quoted multi-line cells (e.g. a
+		// multi-line "sb_notes" value), which naive line-splitting would break.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- "php://temp/" is an in-memory stream, not a file on disk.
+		$handle = fopen( 'php://temp/', 'r+' );
+		fwrite( $handle, $contents ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- writing into the in-memory stream opened above, not a file on disk.
+		rewind( $handle );
 
-			printf(
-				'<p><a class="button" href="%s">%s</a></p>',
-				esc_url( $this->download_log_url( (string) $result['token'] ) ),
-				esc_html__( 'Download Error Log (CSV)', 'smartbook' )
-			);
+		$header = fgetcsv( $handle );
+
+		if ( false === $header ) {
+			fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closes the in-memory stream opened above, not a file on disk.
+			$this->redirect_with_notice( 'error', __( 'The uploaded file is empty.', 'smartbook' ) );
 		}
 
 		echo '</div>';
 	}
 
-	/**
-	 * Build the "N processed — X created, Y updated, ..." summary sentence.
-	 *
-	 * @param array<string, mixed> $result Result array from ImportRunner::result()/run_all().
-	 */
-	private function summary_message( array $result ): string {
-		$mode_label = 'restore' === $result['mode'] ? __( 'Restore', 'smartbook' ) : __( 'Import', 'smartbook' );
-
-		return sprintf(
-			/* translators: 1: "Import" or "Restore", 2: total rows, 3: created count, 4: updated count, 5: skipped count, 6: failed count. */
-			__( '%1$s complete: %2$d row(s) processed — %3$d created, %4$d updated, %5$d skipped, %6$d failed.', 'smartbook' ),
-			$mode_label,
-			(int) $result['total'],
-			(int) $result['created'],
-			(int) $result['updated'],
-			(int) $result['skipped'],
-			(int) $result['failed']
-		);
-	}
+		// Assignment-in-condition is the standard idiom for draining an
+		// fgetcsv() stream; false is its own defined "no more rows" signal.
+		// phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition
+		while ( false !== ( $row = fgetcsv( $handle ) ) ) {
+			$data = array_combine( $header, array_pad( $row, count( $header ), '' ) );
 
 	/**
 	 * Nonce-signed URL to download a run's full error log.
@@ -486,8 +481,7 @@ final class ImportExportPage implements Hookable {
 			);
 		}
 
-		echo '</div>';
-		echo '</fieldset>';
+		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closes the in-memory stream opened above, not a file on disk.
 
 		submit_button( __( 'Export', 'smartbook' ) );
 		echo '</form>';
@@ -527,7 +521,28 @@ final class ImportExportPage implements Hookable {
 	}
 
 	/**
-	 * Render the Backup tab.
+	 * Read an uploaded file's contents via WP_Filesystem rather than a
+	 * direct filesystem call, per WordPress's file-operations guidelines.
+	 *
+	 * @param string $tmp_name PHP-managed temporary upload path from $_FILES.
+	 *
+	 * @return string|false File contents, or false on failure.
+	 */
+	private function read_uploaded_file( string $tmp_name ): string|false {
+		global $wp_filesystem;
+
+		if ( ! $wp_filesystem instanceof \WP_Filesystem_Base ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			WP_Filesystem();
+		}
+
+		return $wp_filesystem->get_contents( $tmp_name );
+	}
+
+	/**
+	 * Create or update a single book from one parsed CSV row.
+	 *
+	 * @param array<string, string> $data Column name => raw cell value.
 	 */
 	private function render_backup_section(): void {
 		echo '<div class="sb-tabs__panel" data-sb-tab-panel="backup">';
@@ -556,12 +571,25 @@ final class ImportExportPage implements Hookable {
 			esc_html__( 'Upload a SmartBook backup file to create or update books from it. Restoring never deletes a book that is missing from the backup.', 'smartbook' )
 		);
 
-		printf(
-			'<form method="post" action="%s" enctype="multipart/form-data" data-sb-import-form data-sb-mode="restore">',
-			esc_url( admin_url( 'admin-post.php' ) )
-		);
-		wp_nonce_field( self::NONCE_ACTION, self::NONCE_NAME );
-		printf( '<input type="hidden" name="action" value="%s" />', esc_attr( self::RESTORE_ACTION ) );
+		if ( $post_id > 0 ) {
+			$existing = get_post( $post_id );
+
+			// The row targets an existing post: only allow the update if it is
+			// already a book and the current user is allowed to edit that
+			// specific book (not just books in general), otherwise a crafted
+			// CSV row could hijack any post ID on the site.
+			if ( ! $existing instanceof WP_Post
+				|| BookPostType::SLUG !== $existing->post_type
+				|| ! current_user_can( 'edit_post', $post_id )
+			) {
+				return;
+			}
+
+			$post_data['ID'] = $post_id;
+			wp_update_post( $post_data );
+		} else {
+			$post_id = wp_insert_post( $post_data, true );
+		}
 
 		echo '<div class="sb-field-group">';
 		printf( '<label for="sb-restore-file">%s</label>', esc_html__( 'Backup file', 'smartbook' ) );
@@ -632,6 +660,22 @@ final class ImportExportPage implements Hookable {
 		if ( ! wp_verify_nonce( $nonce, self::NONCE_ACTION ) ) {
 			wp_die( esc_html__( 'Security check failed. Please try again.', 'smartbook' ) );
 		}
+	}
+
+	/**
+	 * Prefix a cell with an apostrophe if it starts with a character a
+	 * spreadsheet application would interpret as the start of a formula,
+	 * preventing CSV formula injection when the file is opened in Excel
+	 * or similar.
+	 *
+	 * @param string $value Cell value.
+	 */
+	private function csv_safe( string $value ): string {
+		if ( '' !== $value && str_contains( '=+-@', $value[0] ) ) {
+			return "'" . $value;
+		}
+
+		return $value;
 	}
 
 	/**
