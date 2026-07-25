@@ -660,6 +660,81 @@
 }
 
 /* -------------------------------------------------------------------- */
+/* Import / Export                                                       */
+/* -------------------------------------------------------------------- */
+
+.sb-tabs__nav {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var( --sb-space-1 );
+	border-bottom: 1px solid var( --sb-color-border );
+	margin-bottom: var( --sb-space-5 );
+}
+
+.sb-tabs__tab {
+	appearance: none;
+	background: transparent;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	padding: var( --sb-space-2 ) var( --sb-space-3 );
+	margin-bottom: -1px;
+	font: inherit;
+	font-weight: 600;
+	color: var( --sb-color-text-muted );
+	cursor: pointer;
+	transition: color var( --sb-transition ), border-color var( --sb-transition );
+}
+
+.sb-tabs__tab:hover,
+.sb-tabs__tab:focus-visible {
+	color: var( --sb-color-text );
+}
+
+.sb-tabs__tab:focus-visible {
+	outline: 2px solid var( --sb-color-primary );
+	outline-offset: 2px;
+}
+
+.sb-tabs__tab--active {
+	color: var( --sb-color-primary );
+	border-bottom-color: var( --sb-color-primary );
+}
+
+.sb-tabs__panel h2 {
+	margin-top: 0;
+}
+
+.sb-import-progress {
+	max-width: 900px;
+	margin-top: var( --sb-space-4 );
+	padding: var( --sb-space-4 );
+	background: var( --sb-color-bg-subtle );
+	border: 1px solid var( --sb-color-border );
+	border-radius: var( --sb-radius );
+}
+
+.sb-import-progress .sb-progress-bar {
+	max-width: 480px;
+	margin-top: 0;
+}
+
+.sb-import-progress__status {
+	margin: var( --sb-space-2 ) 0 0;
+	color: var( --sb-color-text-muted );
+	font-size: 13px;
+}
+
+.sb-import-result {
+	display: block;
+	max-width: 900px;
+}
+
+.sb-import-result__errors,
+.sb-import-progress__results table {
+	margin-top: var( --sb-space-3 );
+}
+
+/* -------------------------------------------------------------------- */
 /* Responsive                                                            */
 /* -------------------------------------------------------------------- */
 

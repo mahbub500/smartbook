@@ -1,0 +1,129 @@
+<?php
+/**
+ * CSV import/export format.
+ *
+ * @package SmartBook
+ */
+
+declare(strict_types=1);
+
+namespace SmartBook\Services\Import\Formats;
+
+use RuntimeException;
+use SmartBook\Services\Import\BookRowSchema;
+use SmartBook\Services\Import\FormatInterface;
+
+/**
+ * Reads and writes the row shape described by BookRowSchema as CSV.
+ * Taxonomy columns (string[]) are joined/split on ", " for the single
+ * CSV cell; every other column is a plain string cell.
+ */
+final class CsvFormat implements FormatInterface {
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function extension(): string {
+		return 'csv';
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function mime_type(): string {
+		return 'text/csv';
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function encode( array $rows ): string {
+		$columns          = array() !== $rows ? array_keys( reset( $rows ) ) : BookRowSchema::columns();
+		$taxonomy_columns = BookRowSchema::taxonomy_columns();
+
+		$handle = fopen( 'php://temp', 'w+' );
+
+		fputcsv( $handle, $columns );
+
+		foreach ( $rows as $row ) {
+			$line = array();
+
+			foreach ( $columns as $column ) {
+				$value = $row[ $column ] ?? '';
+
+				if ( array_key_exists( $column, $taxonomy_columns ) ) {
+					$value = implode( ', ', array_map( 'strval', (array) $value ) );
+				}
+
+				$line[] = $this->csv_safe( (string) $value );
+			}
+
+			fputcsv( $handle, $line );
+		}
+
+		rewind( $handle );
+		$content = stream_get_contents( $handle );
+		fclose( $handle );
+
+		return false !== $content ? $content : '';
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function decode( string $content ): array {
+		$handle = fopen( 'php://temp', 'w+' );
+		fwrite( $handle, $content );
+		rewind( $handle );
+
+		$header = fgetcsv( $handle );
+
+		if ( false === $header || array( null ) === $header ) {
+			fclose( $handle );
+
+			throw new RuntimeException( __( 'The CSV file is empty.', 'smartbook' ) );
+		}
+
+		$header           = array_map( static fn ( mixed $value ): string => trim( (string) $value ), $header );
+		$taxonomy_columns = BookRowSchema::taxonomy_columns();
+		$rows             = array();
+
+		while ( false !== ( $line = fgetcsv( $handle ) ) ) {
+			if ( array( null ) === $line ) {
+				continue;
+			}
+
+			$data = array_combine( $header, array_pad( $line, count( $header ), '' ) );
+
+			if ( false === $data ) {
+				continue;
+			}
+
+			foreach ( $taxonomy_columns as $column => $taxonomy ) {
+				if ( array_key_exists( $column, $data ) ) {
+					$data[ $column ] = array_values( array_filter( array_map( 'trim', explode( ',', (string) $data[ $column ] ) ) ) );
+				}
+			}
+
+			$rows[] = $data;
+		}
+
+		fclose( $handle );
+
+		return $rows;
+	}
+
+	/**
+	 * Prefix a cell with an apostrophe if it starts with a character a
+	 * spreadsheet application would interpret as the start of a formula,
+	 * preventing CSV formula injection when the file is opened in Excel
+	 * or similar.
+	 */
+	private function csv_safe( string $value ): string {
+		if ( '' !== $value && str_contains( '=+-@', $value[0] ) ) {
+			return "'" . $value;
+		}
+
+		return $value;
+	}
+}
