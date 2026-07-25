@@ -1,0 +1,31 @@
+# Logs and databases
+*.log
+*.sqlite
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Node.js dependencies
+node_modules/
+jspm_packages/
+
+# Python virtual environments & compiled files
+__pycache__/
+*.pyc
+.venv/
+env/
+venv/
+
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+
+# IDEs and text editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
