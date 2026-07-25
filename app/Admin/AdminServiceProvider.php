@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace SmartBook\Admin;
 
+use SmartBook\Admin\Pages\BooksPage;
 use SmartBook\Admin\Pages\DashboardPage;
 use SmartBook\Admin\Pages\ImportExportPage;
 use SmartBook\Admin\Pages\SettingsPage;
@@ -27,6 +28,7 @@ final class AdminServiceProvider extends AbstractServiceProvider {
 	 */
 	public function register( ContainerInterface $container ): void {
 		$container->singleton( DashboardPage::class, static fn (): DashboardPage => new DashboardPage() );
+		$container->singleton( BooksPage::class, static fn (): BooksPage => new BooksPage() );
 		$container->singleton( StatisticsPage::class, static fn (): StatisticsPage => new StatisticsPage() );
 		$container->singleton( ImportExportPage::class, static fn (): ImportExportPage => new ImportExportPage() );
 
@@ -39,6 +41,7 @@ final class AdminServiceProvider extends AbstractServiceProvider {
 			AdminMenu::class,
 			static fn ( ContainerInterface $container ): AdminMenu => new AdminMenu(
 				$container->make( DashboardPage::class ),
+				$container->make( BooksPage::class ),
 				$container->make( StatisticsPage::class ),
 				$container->make( ImportExportPage::class ),
 				$container->make( SettingsPage::class )

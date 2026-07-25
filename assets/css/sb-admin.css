@@ -407,6 +407,96 @@
 }
 
 /* -------------------------------------------------------------------- */
+/* Books list table                                                      */
+/* -------------------------------------------------------------------- */
+
+.sb-books-filters {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var( --sb-space-2 );
+}
+
+.sb-books-filters select {
+	background: var( --sb-color-bg );
+	color: var( --sb-color-text );
+	border-color: var( --sb-color-border );
+}
+
+.sb-books-filters__favorite {
+	display: inline-flex;
+	align-items: center;
+	gap: var( --sb-space-1 );
+}
+
+.sb-books-table__cover {
+	display: block;
+	width: 40px;
+	height: 60px;
+	object-fit: cover;
+	border-radius: 3px;
+	border: 1px solid var( --sb-color-border );
+}
+
+.sb-books-table__cover--placeholder {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var( --sb-color-bg-subtle );
+	font-size: 20px;
+	line-height: 1;
+}
+
+.sb-books-table__rating {
+	color: var( --sb-color-star-filled );
+	letter-spacing: 1px;
+	white-space: nowrap;
+}
+
+.sb-books-table__favorite {
+	color: var( --sb-color-text-muted );
+}
+
+.sb-books-table__favorite--on {
+	color: var( --sb-color-error );
+}
+
+.sb-books-table__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var( --sb-space-1 );
+}
+
+.sb-badge {
+	display: inline-block;
+	padding: 2px var( --sb-space-2 );
+	border-radius: 999px;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.02em;
+	background: var( --sb-color-bg-subtle );
+	color: var( --sb-color-text-muted );
+	border: 1px solid var( --sb-color-border );
+	white-space: nowrap;
+}
+
+.sb-badge--reading {
+	color: var( --sb-color-primary );
+	border-color: var( --sb-color-primary );
+}
+
+.sb-badge--read {
+	color: var( --sb-color-success );
+	border-color: var( --sb-color-success );
+}
+
+.sb-badge--abandoned {
+	color: var( --sb-color-error );
+	border-color: var( --sb-color-error );
+}
+
+/* -------------------------------------------------------------------- */
 /* Responsive                                                            */
 /* -------------------------------------------------------------------- */
 
@@ -437,6 +527,10 @@
 	}
 
 	.sb-notice {
+		flex-direction: column;
+	}
+
+	.sb-books-table__actions {
 		flex-direction: column;
 	}
 }

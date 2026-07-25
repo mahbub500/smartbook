@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace SmartBook\Admin\Pages;
 
+use SmartBook\Admin\Support\RedirectsWithNotice;
 use SmartBook\Core\Contracts\Hookable;
 use SmartBook\MetaBoxes\BookFields;
 use SmartBook\PostTypes\BookPostType;
@@ -25,6 +26,8 @@ use WP_Post;
  * spreadsheet formula injection via csv_safe().
  */
 final class ImportExportPage implements Hookable {
+
+	use RedirectsWithNotice;
 
 	/**
 	 * admin-post.php action name for exporting.
@@ -72,18 +75,10 @@ final class ImportExportPage implements Hookable {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'smartbook' ) );
 		}
 
-		$notice = $this->consume_notice();
-
 		echo '<div class="wrap sb-admin-page">';
 		printf( '<h1>%s</h1>', esc_html__( 'Import / Export', 'smartbook' ) );
 
-		if ( null !== $notice ) {
-			printf(
-				'<div class="sb-notice sb-notice--%1$s"><p>%2$s</p></div>',
-				esc_attr( $notice['type'] ),
-				esc_html( $notice['message'] )
-			);
-		}
+		$this->render_notice();
 
 		printf( '<h2>%s</h2>', esc_html__( 'Export', 'smartbook' ) );
 		printf( '<p>%s</p>', esc_html__( 'Download every book and its details as a CSV file.', 'smartbook' ) );
@@ -269,39 +264,9 @@ final class ImportExportPage implements Hookable {
 	}
 
 	/**
-	 * Redirect back to the import/export page with a result notice, then
-	 * terminate the request (standard for an admin-post.php handler).
+	 * {@inheritDoc}
 	 */
-	private function redirect_with_notice( string $type, string $message ): never {
-		wp_safe_redirect(
-			add_query_arg(
-				array(
-					'page'           => self::PAGE_SLUG,
-					'sb_notice'      => rawurlencode( $message ),
-					'sb_notice_type' => $type,
-				),
-				admin_url( 'admin.php' )
-			)
-		);
-
-		exit;
-	}
-
-	/**
-	 * Read and consume a one-time result notice from the query string.
-	 *
-	 * @return array{type: string, message: string}|null
-	 */
-	private function consume_notice(): ?array {
-		if ( ! isset( $_GET['sb_notice'] ) ) {
-			return null;
-		}
-
-		$type = isset( $_GET['sb_notice_type'] ) && 'success' === $_GET['sb_notice_type'] ? 'success' : 'error';
-
-		return array(
-			'type'    => $type,
-			'message' => sanitize_text_field( wp_unslash( rawurldecode( (string) $_GET['sb_notice'] ) ) ),
-		);
+	private function notice_page_slug(): string {
+		return self::PAGE_SLUG;
 	}
 }

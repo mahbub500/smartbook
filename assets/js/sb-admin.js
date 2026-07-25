@@ -225,6 +225,25 @@
 		} );
 	}
 
+	/**
+	 * Ask for confirmation before following any link marked with a
+	 * "data-sb-confirm" message (the books table's Trash/Delete
+	 * Permanently/Restore row actions).
+	 */
+	function sb_initConfirmLinks( sb_scope ) {
+		var sb_links = sb_scope.querySelectorAll( '[data-sb-confirm]' );
+
+		sb_links.forEach( function ( sb_link ) {
+			sb_link.addEventListener( 'click', function ( sb_event ) {
+				var sb_message = sb_link.getAttribute( 'data-sb-confirm' );
+
+				if ( sb_message && ! sb_window.confirm( sb_message ) ) {
+					sb_event.preventDefault();
+				}
+			} );
+		} );
+	}
+
 	sb_ready( function () {
 		sb_initNotices( sb_document );
 		sb_initAccordions( sb_document );
@@ -232,6 +251,7 @@
 		sb_initProgressFields( sb_document );
 		sb_initTextareaAutosize( sb_document );
 		sb_initImportConfirm( sb_document );
+		sb_initConfirmLinks( sb_document );
 
 		sb_document.dispatchEvent( new CustomEvent( 'sb:admin:ready', { detail: sb_window.sbAdmin } ) );
 	} );

@@ -40,7 +40,7 @@ final class DashboardPage {
 		printf( '<h2>%s</h2>', esc_html__( 'Quick Links', 'smartbook' ) );
 		echo '<ul class="sb-dashboard__links">';
 		$this->render_link( __( 'Add New Book', 'smartbook' ), admin_url( 'post-new.php?post_type=' . BookPostType::SLUG ) );
-		$this->render_link( __( 'View All Books', 'smartbook' ), admin_url( 'edit.php?post_type=' . BookPostType::SLUG ) );
+		$this->render_link( __( 'View All Books', 'smartbook' ), admin_url( 'admin.php?page=sb_books' ) );
 		$this->render_link( __( 'View Statistics', 'smartbook' ), admin_url( 'admin.php?page=sb_statistics' ) );
 		$this->render_link( __( 'Import / Export', 'smartbook' ), admin_url( 'admin.php?page=sb_import_export' ) );
 		echo '</ul>';

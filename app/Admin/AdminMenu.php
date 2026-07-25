@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace SmartBook\Admin;
 
+use SmartBook\Admin\Pages\BooksPage;
 use SmartBook\Admin\Pages\DashboardPage;
 use SmartBook\Admin\Pages\ImportExportPage;
 use SmartBook\Admin\Pages\SettingsPage;
@@ -39,12 +40,14 @@ final class AdminMenu implements Hookable {
 
 	/**
 	 * @param DashboardPage    $dashboard     Dashboard page renderer.
+	 * @param BooksPage        $books         Books list page renderer.
 	 * @param StatisticsPage   $statistics    Statistics page renderer.
 	 * @param ImportExportPage $import_export Import/export page renderer.
 	 * @param SettingsPage     $settings      Settings page renderer.
 	 */
 	public function __construct(
 		private readonly DashboardPage $dashboard,
+		private readonly BooksPage $books,
 		private readonly StatisticsPage $statistics,
 		private readonly ImportExportPage $import_export,
 		private readonly SettingsPage $settings
@@ -86,7 +89,8 @@ final class AdminMenu implements Hookable {
 			__( 'Books', 'smartbook' ),
 			__( 'Books', 'smartbook' ),
 			BookPostType::CAP_EDIT_BOOKS,
-			'edit.php?post_type=' . BookPostType::SLUG
+			'sb_books',
+			array( $this->books, 'render' )
 		);
 
 		add_submenu_page(
