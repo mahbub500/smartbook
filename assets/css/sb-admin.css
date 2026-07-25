@@ -660,6 +660,236 @@
 }
 
 /* -------------------------------------------------------------------- */
+/* Import / Export                                                       */
+/* -------------------------------------------------------------------- */
+
+.sb-tabs {
+	max-width: 900px;
+	margin-top: var( --sb-space-4 );
+	padding: var( --sb-space-5 );
+	background: var( --sb-color-bg );
+	border: 1px solid var( --sb-color-border );
+	border-radius: var( --sb-radius );
+	box-shadow: var( --sb-shadow );
+}
+
+/* JS-only: without it every panel just stacks inside the card above,
+   each already separated by the "+ .sb-tabs__panel" rule below. */
+.sb-tabs__nav {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var( --sb-space-1 );
+	margin: calc( -1 * var( --sb-space-5 ) ) calc( -1 * var( --sb-space-5 ) ) var( --sb-space-5 );
+	padding: var( --sb-space-2 ) var( --sb-space-3 ) 0;
+	background: var( --sb-color-bg-subtle );
+	border-bottom: 1px solid var( --sb-color-border );
+	border-radius: var( --sb-radius ) var( --sb-radius ) 0 0;
+}
+
+.sb-tabs__tab {
+	appearance: none;
+	background: transparent;
+	border: 1px solid transparent;
+	border-bottom: 0;
+	border-radius: var( --sb-radius ) var( --sb-radius ) 0 0;
+	padding: var( --sb-space-2 ) var( --sb-space-4 );
+	font: inherit;
+	font-weight: 600;
+	color: var( --sb-color-text-muted );
+	cursor: pointer;
+	transition: color var( --sb-transition ), background var( --sb-transition );
+}
+
+.sb-tabs__tab:hover,
+.sb-tabs__tab:focus-visible {
+	color: var( --sb-color-text );
+}
+
+.sb-tabs__tab:focus-visible {
+	outline: 2px solid var( --sb-color-primary );
+	outline-offset: -2px;
+}
+
+.sb-tabs__tab--active {
+	color: var( --sb-color-primary );
+	background: var( --sb-color-bg );
+	border-color: var( --sb-color-border );
+}
+
+.sb-tabs__panel h2 {
+	margin-top: 0;
+	font-size: 18px;
+}
+
+.sb-tabs__panel + .sb-tabs__panel {
+	margin-top: var( --sb-space-6 );
+	padding-top: var( --sb-space-6 );
+	border-top: 1px solid var( --sb-color-border );
+}
+
+.sb-tabs__panel .description {
+	max-width: 560px;
+	color: var( --sb-color-text-muted );
+}
+
+.sb-tabs__panel .submit {
+	margin-top: var( --sb-space-2 );
+}
+
+/* -------------------------------------------------------------------- */
+/* Import / Export: choice groups (format, duplicate handling)          */
+/* -------------------------------------------------------------------- */
+
+.sb-choice-group {
+	border: 0;
+	padding: 0;
+	margin: 0 0 var( --sb-space-4 );
+}
+
+.sb-choice-group legend {
+	font-weight: 600;
+	padding: 0;
+	margin-bottom: var( --sb-space-2 );
+	color: var( --sb-color-text );
+}
+
+.sb-choice-group__options {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var( --sb-space-2 );
+	max-width: 560px;
+}
+
+.sb-choice-group__options label {
+	display: inline-flex;
+	align-items: center;
+	gap: var( --sb-space-2 );
+	padding: var( --sb-space-2 ) var( --sb-space-3 );
+	border: 1px solid var( --sb-color-border );
+	border-radius: 999px;
+	background: var( --sb-color-bg );
+	font-weight: 400;
+	line-height: 1.2;
+	cursor: pointer;
+	transition: border-color var( --sb-transition ), background var( --sb-transition );
+}
+
+.sb-choice-group__options label:hover {
+	border-color: var( --sb-color-primary );
+}
+
+.sb-choice-group__options input[type='radio'] {
+	margin: 0;
+}
+
+.sb-choice-group__options label:has( input:checked ) {
+	border-color: var( --sb-color-primary );
+	background: var( --sb-color-success-bg );
+}
+
+.sb-choice-group__options label:has( input:focus-visible ) {
+	outline: 2px solid var( --sb-color-primary );
+	outline-offset: 2px;
+}
+
+/* -------------------------------------------------------------------- */
+/* Import / Export: file picker                                         */
+/* -------------------------------------------------------------------- */
+
+.sb-field-group input[type='file'] {
+	display: block;
+	width: 100%;
+	max-width: 480px;
+	padding: var( --sb-space-3 );
+	background: var( --sb-color-bg-subtle );
+	border: 1px dashed var( --sb-color-border );
+	border-radius: var( --sb-radius );
+	color: var( --sb-color-text );
+	transition: border-color var( --sb-transition ), background var( --sb-transition );
+}
+
+.sb-field-group input[type='file']:hover {
+	border-color: var( --sb-color-primary );
+}
+
+.sb-field-group input[type='file']:focus-visible {
+	outline: 2px solid var( --sb-color-primary );
+	outline-offset: 2px;
+}
+
+/* -------------------------------------------------------------------- */
+/* Import / Export: progress + results                                  */
+/* -------------------------------------------------------------------- */
+
+.sb-import-progress {
+	max-width: 560px;
+	margin-top: var( --sb-space-4 );
+	padding: var( --sb-space-4 );
+	background: var( --sb-color-bg-subtle );
+	border: 1px solid var( --sb-color-border );
+	border-radius: var( --sb-radius );
+}
+
+.sb-import-progress .sb-progress-bar {
+	display: flex;
+	align-items: center;
+	gap: var( --sb-space-3 );
+	margin-top: 0;
+}
+
+.sb-import-progress .sb-progress-bar__track {
+	flex: 1 1 auto;
+}
+
+.sb-import-progress .sb-progress-bar__label {
+	flex: 0 0 auto;
+	min-width: 2.5em;
+	margin-top: 0;
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+.sb-import-progress__status {
+	margin: var( --sb-space-2 ) 0 0;
+	color: var( --sb-color-text-muted );
+	font-size: 13px;
+}
+
+.sb-import-progress__results {
+	max-width: none;
+}
+
+.sb-import-result {
+	display: block;
+	max-width: 900px;
+	margin-bottom: var( --sb-space-6 );
+}
+
+.sb-table-scroll {
+	max-width: 100%;
+	margin-top: var( --sb-space-3 );
+	overflow-x: auto;
+}
+
+.sb-import-result__errors,
+.sb-import-progress__results table {
+	margin-top: 0;
+	white-space: nowrap;
+}
+
+.sb-import-result__errors th:first-child,
+.sb-import-result__errors td:first-child {
+	width: 1%;
+	white-space: nowrap;
+}
+
+.sb-import-result__errors td:last-child,
+.sb-import-progress__results table td:last-child {
+	white-space: normal;
+	min-width: 240px;
+}
+
+/* -------------------------------------------------------------------- */
 /* Responsive                                                            */
 /* -------------------------------------------------------------------- */
 
@@ -686,6 +916,15 @@
 	.sb-chart-card__canvas-wrap {
 		height: 220px;
 	}
+
+	.sb-tabs {
+		padding: var( --sb-space-4 );
+	}
+
+	.sb-tabs__nav {
+		margin: calc( -1 * var( --sb-space-4 ) ) calc( -1 * var( --sb-space-4 ) ) var( --sb-space-4 );
+		padding: var( --sb-space-2 ) var( --sb-space-2 ) 0;
+	}
 }
 
 @media ( max-width: 480px ) {
@@ -704,6 +943,19 @@
 
 	.sb-labels-grid {
 		grid-template-columns: 1fr;
+	}
+
+	.sb-choice-group__options {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.sb-choice-group__options label {
+		justify-content: flex-start;
+	}
+
+	.sb-import-progress .sb-progress-bar {
+		flex-wrap: wrap;
 	}
 }
 

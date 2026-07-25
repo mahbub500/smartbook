@@ -24,6 +24,8 @@ use SmartBook\Core\AbstractServiceProvider;
 use SmartBook\Core\Contracts\ContainerInterface;
 use SmartBook\Services\BarcodeManager;
 use SmartBook\Services\BookStats;
+use SmartBook\Services\Import\FormatRegistry;
+use SmartBook\Services\Import\ImportRunner;
 use SmartBook\Services\QrCodeManager;
 use SmartBook\Settings\Settings;
 
@@ -51,7 +53,22 @@ final class AdminServiceProvider extends AbstractServiceProvider {
 		);
 
 		$container->singleton( StatisticsPage::class, static fn (): StatisticsPage => new StatisticsPage() );
-		$container->singleton( ImportExportPage::class, static fn (): ImportExportPage => new ImportExportPage() );
+
+		$container->singleton(
+			ImportExportPage::class,
+			static fn ( ContainerInterface $container ): ImportExportPage => new ImportExportPage(
+				$container->make( ImportRunner::class ),
+				$container->make( FormatRegistry::class )
+			)
+		);
+
+		$container->singleton(
+			ImportExportAjaxController::class,
+			static fn ( ContainerInterface $container ): ImportExportAjaxController => new ImportExportAjaxController(
+				$container->make( ImportRunner::class ),
+				$container->make( FormatRegistry::class )
+			)
+		);
 
 		$container->singleton(
 			SettingsPage::class,
@@ -91,6 +108,7 @@ final class AdminServiceProvider extends AbstractServiceProvider {
 		$container->make( AdminMenu::class )->register_hooks();
 		$container->make( DashboardPage::class )->register_hooks();
 		$container->make( ImportExportPage::class )->register_hooks();
+		$container->make( ImportExportAjaxController::class )->register_hooks();
 		$container->make( SettingsPage::class )->register_hooks();
 	}
 }

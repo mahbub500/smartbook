@@ -56,10 +56,23 @@ final class Uninstaller {
 	}
 
 	/**
-	 * Remove cached transients owned by the plugin.
+	 * Remove cached transients owned by the plugin, including the
+	 * randomly-tokened "sb_import_*" session transients ImportSession
+	 * creates per import/restore run, which can't be deleted by a fixed
+	 * name and would otherwise only disappear on their own expiry.
 	 */
 	private static function delete_transients(): void {
 		delete_transient( 'sb_cache' );
+
+		global $wpdb;
+
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$wpdb->esc_like( '_transient_sb_import_' ) . '%',
+				$wpdb->esc_like( '_transient_timeout_sb_import_' ) . '%'
+			)
+		);
 	}
 
 	/**
@@ -91,11 +104,12 @@ final class Uninstaller {
 	}
 
 	/**
-	 * Remove the uploads/sb-qrcodes and uploads/sb-barcodes directories
-	 * and every generated image in them, for the current site.
+	 * Remove the uploads/sb-qrcodes, uploads/sb-barcodes, and
+	 * uploads/sb-imports directories and everything generated/uploaded
+	 * into them, for the current site.
 	 */
 	private static function delete_generated_asset_directories(): void {
-		foreach ( array( 'sb-qrcodes', 'sb-barcodes' ) as $directory_name ) {
+		foreach ( array( 'sb-qrcodes', 'sb-barcodes', 'sb-imports' ) as $directory_name ) {
 			self::delete_directory( trailingslashit( wp_upload_dir()['basedir'] ) . $directory_name );
 		}
 	}
