@@ -310,6 +310,66 @@
 	min-width: 140px;
 }
 
+.sb-book-hero__availability {
+	margin: 8px 0 0;
+}
+
+.sb-book-hero__availability a {
+	color: var( --sb-color-primary );
+}
+
+.sb-book-hero__availability--borrowed {
+	font-weight: 600;
+	color: var( --sb-color-warning );
+}
+
+.sb-book-hero__availability--pending {
+	font-weight: 600;
+	color: var( --sb-color-text-muted );
+}
+
+.sb-borrow-request-form {
+	margin: 8px 0 0;
+}
+
+.sb-borrow-request-form__submit {
+	padding: 8px 18px;
+	background: var( --sb-color-primary );
+	color: #fff;
+	border: 0;
+	border-radius: 6px;
+	font-size: 0.9em;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.sb-borrow-request-form__submit:hover,
+.sb-borrow-request-form__submit:focus-visible {
+	opacity: 0.9;
+}
+
+.sb-book-notice {
+	max-width: 720px;
+	margin: 0 0 16px;
+	padding: 12px 16px;
+	border-radius: 8px;
+	color: var( --sb-color-text );
+}
+
+.sb-book-notice p {
+	margin: 0;
+}
+
+.sb-book-notice--success {
+	background: rgba( 0, 163, 42, 0.1 );
+	border: 1px solid var( --sb-color-success );
+}
+
+.sb-book-notice--error {
+	background: rgba( 214, 54, 56, 0.1 );
+	border: 1px solid var( --sb-color-warning );
+}
+
 @media ( max-width: 480px ) {
 
 	.sb-book-hero {

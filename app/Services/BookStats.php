@@ -14,6 +14,7 @@ use SmartBook\PostTypes\BookPostType;
 use SmartBook\Taxonomies\AuthorTaxonomy;
 use SmartBook\Taxonomies\GenreTaxonomy;
 use WP_Post;
+use WP_User;
 
 /**
  * Aggregates counts and chart-ready datasets from the book catalog, for
@@ -78,6 +79,49 @@ final class BookStats {
 				}
 			)
 		);
+	}
+
+	/**
+	 * Number of books with a pending "request to borrow" awaiting
+	 * approval, for the "Borrowed Books" sidebar menu's notification
+	 * bubble (see AdminMenu::add_borrow_request_bubble()).
+	 */
+	public function count_pending_borrow_requests(): int {
+		return count( $this->pending_borrow_requests() );
+	}
+
+	/**
+	 * Every book with a pending "request to borrow" (see
+	 * Frontend\BorrowRequestController), oldest request first.
+	 *
+	 * @return array<int, array{post_id: int, title: string, requester: string, requested_date: string}>
+	 */
+	public function pending_borrow_requests(): array {
+		$rows = array();
+
+		foreach ( $this->posts() as $post ) {
+			$requester_id = (int) get_post_meta( $post->ID, 'sb_borrow_request_user', true );
+
+			if ( $requester_id <= 0 ) {
+				continue;
+			}
+
+			$requester = get_userdata( $requester_id );
+
+			$rows[] = array(
+				'post_id'        => $post->ID,
+				'title'          => get_the_title( $post ),
+				'requester'      => $requester instanceof WP_User ? $requester->display_name : __( '(deleted user)', 'smartbook' ),
+				'requested_date' => (string) get_post_meta( $post->ID, 'sb_borrow_request_date', true ),
+			);
+		}
+
+		usort(
+			$rows,
+			static fn ( array $a, array $b ): int => strcmp( $a['requested_date'], $b['requested_date'] )
+		);
+
+		return $rows;
 	}
 
 	/**

@@ -176,7 +176,7 @@ final class AdminMenu implements Hookable {
 			add_submenu_page(
 				self::PARENT_SLUG,
 				__( 'Borrowed Books', 'smartbook' ),
-				__( 'Borrowed Books', 'smartbook' ),
+				$this->menu_label_with_bubble( __( 'Borrowed Books', 'smartbook' ), $this->borrowed_books->pending_request_count() ),
 				BookPostType::CAP_EDIT_BOOKS,
 				'sb_borrowed_books',
 				array( $this->borrowed_books, 'render' )
@@ -383,6 +383,24 @@ final class AdminMenu implements Hookable {
 		}
 
 		printf( '<style>%s{display:none;}</style>', implode( ',', $selectors ) );
+	}
+
+	/**
+	 * Append a WordPress-native notification bubble to a menu label --
+	 * the same ".awaiting-mod"/".pending-count" markup core itself uses
+	 * for the Comments menu's moderation count, styled by wp-admin's own
+	 * CSS with no additions needed here. '' count leaves the label
+	 * untouched.
+	 */
+	private function menu_label_with_bubble( string $label, int $count ): string {
+		if ( $count <= 0 ) {
+			return $label;
+		}
+
+		return $label . sprintf(
+			' <span class="awaiting-mod count-%1$d"><span class="pending-count">%1$d</span></span>',
+			$count
+		);
 	}
 
 	/**

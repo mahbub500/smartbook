@@ -291,7 +291,43 @@ final class BookContentDisplay implements Hookable {
 
 		$post_id = get_the_ID();
 
-		return $this->render_hero( $post_id ) . $content . $this->render_details_panel( $post_id ) . $this->render_gallery( $post_id );
+		return $this->render_borrow_notice()
+			. $this->render_hero( $post_id )
+			. $content
+			. $this->render_details_panel( $post_id )
+			. $this->render_gallery( $post_id );
+	}
+
+	/**
+	 * A one-time result banner for a just-submitted borrow request (see
+	 * Frontend\BorrowRequestController's redirect), read from its
+	 * "sb_borrow_notice" query flag. Read-only and nothing here mutates
+	 * state, so no nonce is needed to display it.
+	 */
+	private function render_borrow_notice(): string {
+		if ( ! isset( $_GET['sb_borrow_notice'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return '';
+		}
+
+		$code = sanitize_key( wp_unslash( $_GET['sb_borrow_notice'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+		$messages = array(
+			'requested'         => array( 'success', __( 'Your request to borrow this book has been submitted. An admin will review it soon.', 'smartbook' ) ),
+			'unavailable'       => array( 'error', __( 'This book is currently unavailable to request.', 'smartbook' ) ),
+			'already_requested' => array( 'error', __( 'This book already has a pending request.', 'smartbook' ) ),
+		);
+
+		if ( ! isset( $messages[ $code ] ) ) {
+			return '';
+		}
+
+		[ $type, $message ] = $messages[ $code ];
+
+		return sprintf(
+			'<div class="sb-book-notice sb-book-notice--%1$s"><p>%2$s</p></div>',
+			esc_attr( $type ),
+			esc_html( $message )
+		);
 	}
 
 	/**
@@ -332,6 +368,7 @@ final class BookContentDisplay implements Hookable {
 		}
 
 		$html .= $this->render_average_rating( $post_id );
+		$html .= $this->render_availability( $post_id );
 
 		if ( sb_option( 'enable_reading_tracker', true ) ) {
 			$html .= $this->reading_block( $post_id );
@@ -389,6 +426,73 @@ final class BookContentDisplay implements Hookable {
 		$html .= '</div>';
 
 		return $html;
+	}
+
+	/**
+	 * Availability status/action: "Currently Borrowed", a "Request
+	 * Pending" notice (worded differently for the requester themself
+	 * than for anyone else), a "Request to Borrow" button for a
+	 * logged-in visitor when the book is actually available, or a login
+	 * prompt for a logged-out one. '' entirely when Borrow Management
+	 * is disabled (Settings\Settings' "enable_borrow").
+	 */
+	private function render_availability( int $post_id ): string {
+		if ( ! sb_option( 'enable_borrow', true ) ) {
+			return '';
+		}
+
+		if ( $this->is_borrowed( $post_id ) ) {
+			return sprintf(
+				'<p class="sb-book-hero__availability sb-book-hero__availability--borrowed">%s</p>',
+				esc_html__( 'Currently Borrowed', 'smartbook' )
+			);
+		}
+
+		$requester_id = (int) get_post_meta( $post_id, 'sb_borrow_request_user', true );
+
+		if ( $requester_id > 0 ) {
+			$message = get_current_user_id() === $requester_id
+				? __( 'Your request to borrow this book is pending approval.', 'smartbook' )
+				: __( 'Request Pending', 'smartbook' );
+
+			return sprintf(
+				'<p class="sb-book-hero__availability sb-book-hero__availability--pending">%s</p>',
+				esc_html( $message )
+			);
+		}
+
+		if ( is_user_logged_in() ) {
+			return $this->render_request_form( $post_id );
+		}
+
+		return sprintf(
+			'<p class="sb-book-hero__availability"><a href="%s">%s</a></p>',
+			esc_url( wp_login_url( (string) get_permalink( $post_id ) ) ),
+			esc_html__( 'Log in to request this book', 'smartbook' )
+		);
+	}
+
+	/**
+	 * The "Request to Borrow" form, posting to
+	 * Frontend\BorrowRequestController::ACTION.
+	 */
+	private function render_request_form( int $post_id ): string {
+		$html  = sprintf( '<form method="post" action="%s" class="sb-borrow-request-form">', esc_url( admin_url( 'admin-post.php' ) ) );
+		$html .= wp_nonce_field( BorrowRequestController::nonce_action( $post_id ), BorrowRequestController::NONCE_NAME, true, false );
+		$html .= sprintf( '<input type="hidden" name="action" value="%s" />', esc_attr( BorrowRequestController::ACTION ) );
+		$html .= sprintf( '<input type="hidden" name="sb_post_id" value="%d" />', $post_id );
+		$html .= sprintf( '<button type="submit" class="sb-borrow-request-form__submit">%s</button>', esc_html__( 'Request to Borrow', 'smartbook' ) );
+		$html .= '</form>';
+
+		return $html;
+	}
+
+	/**
+	 * Whether a book is currently on loan.
+	 */
+	private function is_borrowed( int $post_id ): bool {
+		return '1' === (string) get_post_meta( $post_id, 'sb_borrowed', true )
+			&& '1' !== (string) get_post_meta( $post_id, 'sb_returned', true );
 	}
 
 	/**
