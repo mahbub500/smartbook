@@ -18,6 +18,7 @@ use SmartBook\Taxonomies\GenreTaxonomy;
 use SmartBook\Taxonomies\PublisherTaxonomy;
 use SmartBook\Taxonomies\SeriesTaxonomy;
 use SmartBook\Taxonomies\ShelfTaxonomy;
+use WP_Comment;
 
 use function sb_format_currency;
 use function sb_format_date;
@@ -33,7 +34,10 @@ use function sb_option;
  * for logged-in users only (force_comments_open()/require_login()) --
  * the theme's own comments_template() call still decides where on the
  * page the actual comment list/form appears, same as it does for any
- * other post type.
+ * other post type -- and lets a commenter attach a 1-5 star rating to
+ * their comment (add_rating_field()/save_comment_rating()/
+ * append_comment_rating()), the same pattern WooCommerce's own product
+ * reviews use for star ratings on top of ordinary comments.
  *
  * Only ever shown on the book's own singular page, never in a loop/
  * archive/excerpt context (is_singular()/in_the_loop()/is_main_query()
@@ -45,12 +49,20 @@ use function sb_option;
 final class BookContentDisplay implements Hookable {
 
 	/**
+	 * Comment meta key a comment's star rating is stored under.
+	 */
+	private const RATING_META_KEY = 'sb_comment_rating';
+
+	/**
 	 * {@inheritDoc}
 	 */
 	public function register_hooks(): void {
 		add_filter( 'the_content', array( $this, 'append_panel' ) );
 		add_filter( 'comments_open', array( $this, 'force_comments_open' ), 10, 2 );
 		add_filter( 'pre_option_comment_registration', array( $this, 'require_login_for_book_comments' ) );
+		add_filter( 'comment_form_fields', array( $this, 'add_rating_field' ) );
+		add_action( 'comment_post', array( $this, 'save_comment_rating' ) );
+		add_filter( 'comment_text', array( $this, 'append_comment_rating' ), 10, 2 );
 	}
 
 	/**
@@ -99,6 +111,172 @@ final class BookContentDisplay implements Hookable {
 		}
 
 		return $value;
+	}
+
+	/**
+	 * Add a 1-5 star rating field to the comment form on a book's own
+	 * page. Inserted ahead of the "comment" textarea so it reads as
+	 * "rate, then write your comment". Left out entirely on every other
+	 * post type's comment form.
+	 *
+	 * @param array<string, string> $fields Comment form fields, keyed by field name.
+	 *
+	 * @return array<string, string>
+	 */
+	public function add_rating_field( array $fields ): array {
+		if ( ! is_singular( BookPostType::SLUG ) ) {
+			return $fields;
+		}
+
+		return array_merge( array( self::RATING_META_KEY => $this->rating_field_html() ), $fields );
+	}
+
+	/**
+	 * Build the star-rating radio group's markup. A pure-CSS widget (see
+	 * sb-public.css' ".sb-comment-rating" rules) -- the radio inputs are
+	 * in descending value order specifically so the ":checked ~ label"/
+	 * "label:hover ~ label" sibling-selector trick can light up "this
+	 * star and everything before it" using only CSS, no JavaScript.
+	 */
+	private function rating_field_html(): string {
+		$stars = '';
+
+		for ( $value = 5; $value >= 1; $value-- ) {
+			$stars .= sprintf(
+				'<input type="radio" id="sb-comment-rating-%1$d" name="%2$s" value="%1$d" /><label for="sb-comment-rating-%1$d" title="%3$s">&#9733;</label>',
+				$value,
+				esc_attr( self::RATING_META_KEY ),
+				esc_attr(
+					sprintf(
+						/* translators: %d: number of stars, 1-5. */
+						_n( '%d star', '%d stars', $value, 'smartbook' ),
+						$value
+					)
+				)
+			);
+		}
+
+		return sprintf(
+			'<p class="comment-form-rating"><label>%1$s</label><span class="sb-comment-rating">%2$s</span></p>',
+			esc_html__( 'Your Rating', 'smartbook' ),
+			$stars
+		);
+	}
+
+	/**
+	 * Save a comment's submitted star rating as comment meta, if the
+	 * comment is on a book and a valid 1-5 value was submitted.
+	 */
+	public function save_comment_rating( int $comment_id ): void {
+		$comment = get_comment( $comment_id );
+
+		if ( ! $comment instanceof WP_Comment || BookPostType::SLUG !== get_post_type( (int) $comment->comment_post_ID ) ) {
+			return;
+		}
+
+		if ( ! isset( $_POST[ self::RATING_META_KEY ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- wp-comments-post.php has already run its own nonce/referer checks by the time the "comment_post" action fires; this only reads one more field off that same already-validated submission.
+			return;
+		}
+
+		$rating = absint( wp_unslash( $_POST[ self::RATING_META_KEY ] ) );
+
+		if ( $rating < 1 || $rating > 5 ) {
+			return;
+		}
+
+		update_comment_meta( $comment_id, self::RATING_META_KEY, $rating );
+	}
+
+	/**
+	 * Append the star rating (if any) after a book comment's own text.
+	 * Left untouched on every other post type's comments.
+	 *
+	 * @param string          $comment_text Comment content, ready for display.
+	 * @param WP_Comment|null $comment      The comment being displayed.
+	 */
+	public function append_comment_rating( string $comment_text, ?WP_Comment $comment ): string {
+		if ( ! $comment instanceof WP_Comment || BookPostType::SLUG !== get_post_type( (int) $comment->comment_post_ID ) ) {
+			return $comment_text;
+		}
+
+		$rating = (int) get_comment_meta( $comment->comment_ID, self::RATING_META_KEY, true );
+
+		if ( $rating < 1 || $rating > 5 ) {
+			return $comment_text;
+		}
+
+		return $comment_text . sprintf(
+			'<p class="sb-comment-rating-display" aria-label="%1$s">%2$s</p>',
+			esc_attr(
+				sprintf(
+					/* translators: %d: rating out of 5. */
+					__( '%d out of 5 stars', 'smartbook' ),
+					$rating
+				)
+			),
+			esc_html( str_repeat( '★', $rating ) . str_repeat( '☆', 5 - $rating ) )
+		);
+	}
+
+	/**
+	 * Render the average reader rating (from commenters' star ratings,
+	 * not the admin-set "sb_rating" field already shown alongside it in
+	 * the hero) plus how many ratings it's based on. '' when nobody has
+	 * rated yet.
+	 */
+	private function render_average_rating( int $post_id ): string {
+		[ $average, $count ] = $this->average_rating( $post_id );
+
+		if ( 0 === $count ) {
+			return '';
+		}
+
+		$rounded = (int) round( $average );
+
+		return sprintf(
+			'<p class="sb-book-hero__reader-rating"><span class="sb-book-panel__rating" aria-hidden="true">%1$s</span> <span class="sb-book-hero__reader-rating-text">%2$s</span></p>',
+			esc_html( str_repeat( '★', $rounded ) . str_repeat( '☆', 5 - $rounded ) ),
+			esc_html(
+				sprintf(
+					/* translators: 1: average rating out of 5, one decimal place, 2: number of reader ratings it's based on. */
+					_n( '%1$s average (%2$d rating)', '%1$s average (%2$d ratings)', $count, 'smartbook' ),
+					number_format_i18n( $average, 1 ),
+					$count
+				)
+			)
+		);
+	}
+
+	/**
+	 * Average of every approved comment's star rating on this book (see
+	 * append_comment_rating()'s "sb_comment_rating" comment meta), and
+	 * how many ratings that average is based on.
+	 *
+	 * @return array{0: float, 1: int}
+	 */
+	private function average_rating( int $post_id ): array {
+		$comments = get_comments(
+			array(
+				'post_id' => $post_id,
+				'status'  => 'approve',
+			)
+		);
+
+		$ratings = array();
+
+		foreach ( $comments as $comment ) {
+			$rating = (int) get_comment_meta( $comment->comment_ID, self::RATING_META_KEY, true );
+
+			if ( $rating >= 1 && $rating <= 5 ) {
+				$ratings[] = $rating;
+			}
+		}
+
+		if ( array() === $ratings ) {
+			return array( 0.0, 0 );
+		}
+
+		return array( array_sum( $ratings ) / count( $ratings ), count( $ratings ) );
 	}
 
 	/**
@@ -152,6 +330,8 @@ final class BookContentDisplay implements Hookable {
 		if ( array() !== $meta ) {
 			$html .= sprintf( '<p class="sb-book-hero__meta">%s</p>', implode( ' &middot; ', $meta ) );
 		}
+
+		$html .= $this->render_average_rating( $post_id );
 
 		if ( sb_option( 'enable_reading_tracker', true ) ) {
 			$html .= $this->reading_block( $post_id );

@@ -285,6 +285,19 @@
 	color: var( --sb-color-text );
 }
 
+.sb-book-hero__reader-rating {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0 0 12px;
+	color: var( --sb-color-text-muted );
+	font-size: 0.9em;
+}
+
+.sb-book-hero__reader-rating .sb-book-panel__rating {
+	font-size: 1.1em;
+}
+
 .sb-book-hero__reading {
 	display: flex;
 	flex-wrap: wrap;
@@ -635,6 +648,64 @@ body.sb-gallery-modal-open {
 .single-sb_book .must-log-in a,
 .single-sb_book .logged-in-as a {
 	color: var( --sb-color-primary );
+}
+
+.single-sb_book .comment-form-rating {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-bottom: 16px;
+}
+
+.single-sb_book .comment-form-rating > label {
+	font-weight: 600;
+	font-size: 0.9em;
+}
+
+/**
+ * Pure-CSS 1-5 star picker: no JavaScript needed. The radio inputs are
+ * in descending order in the markup (5,4,3,2,1), each immediately
+ * followed by its own label; row-reverse then lays them out visually as
+ * 1,2,3,4,5. ":checked ~ label" and "label:hover ~ label" both select
+ * siblings *after* the matched element in that markup order -- which,
+ * thanks to the reversed markup, is exactly "this star and every one
+ * before it" visually. See Frontend\BookContentDisplay::rating_field_html().
+ */
+.sb-comment-rating {
+	display: inline-flex;
+	flex-direction: row-reverse;
+	gap: 2px;
+}
+
+.sb-comment-rating input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	opacity: 0;
+}
+
+.sb-comment-rating label {
+	font-size: 26px;
+	line-height: 1;
+	color: var( --sb-color-border );
+	cursor: pointer;
+}
+
+.sb-comment-rating input:checked ~ label,
+.sb-comment-rating label:hover,
+.sb-comment-rating label:hover ~ label {
+	color: var( --sb-color-star-filled );
+}
+
+.sb-comment-rating input:focus-visible + label {
+	outline: 2px solid var( --sb-color-primary );
+	outline-offset: 2px;
+}
+
+.sb-comment-rating-display {
+	margin: 6px 0 0;
+	color: var( --sb-color-star-filled );
+	letter-spacing: 1px;
 }
 
 /* -------------------------------------------------------------------- */
