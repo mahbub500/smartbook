@@ -24,7 +24,10 @@ use function sb_option;
  * "Confirm Return" on an on-loan row ends one) -- this class only ever
  * records that a request was made (sb_borrow_request_user/
  * sb_borrow_request_date for a borrow, sb_return_request for a return),
- * it never sets "sb_borrowed"/"sb_returned" directly.
+ * it never sets "sb_borrowed"/"sb_returned" directly. Fires
+ * "sb_borrow_requested"/"sb_return_requested" once each request is
+ * recorded, purely so Notifications\BorrowNotifications can email the
+ * admin without this class needing to know notifications exist.
  *
  * Registered on "admin_post_{action}" only, not the "_nopriv_" variant,
  * since WordPress routes a submission to exactly one of the two based
@@ -119,6 +122,15 @@ final class BorrowRequestController implements Hookable {
 		update_post_meta( $post_id, 'sb_borrow_request_user', get_current_user_id() );
 		update_post_meta( $post_id, 'sb_borrow_request_date', current_time( 'mysql' ) );
 
+		/**
+		 * Fires when a "Request to Borrow" is submitted, for
+		 * Notifications\BorrowNotifications to email the admin.
+		 *
+		 * @param int $post_id Book post ID.
+		 * @param int $user_id Requester's user ID.
+		 */
+		do_action( 'sb_borrow_requested', $post_id, get_current_user_id() );
+
 		$this->redirect_back( $post_id, 'requested' );
 	}
 
@@ -147,6 +159,15 @@ final class BorrowRequestController implements Hookable {
 		}
 
 		update_post_meta( $post_id, 'sb_return_request', '1' );
+
+		/**
+		 * Fires when a "Return Book" request is submitted, for
+		 * Notifications\BorrowNotifications to email the admin.
+		 *
+		 * @param int $post_id Book post ID.
+		 * @param int $user_id Borrower's user ID.
+		 */
+		do_action( 'sb_return_requested', $post_id, get_current_user_id() );
 
 		$this->redirect_back( $post_id, 'return_requested' );
 	}

@@ -19,11 +19,12 @@ use SmartBook\Settings\Settings;
  * register_setting() (see Settings\SettingsServiceProvider); this class
  * only supplies the field markup and the page shell.
  *
- * Four tabs, one per section: General (logging), Features (the four
+ * Four tabs, one per section: General (logging), Features (the five
  * "Enable ..." toggles other modules read via sb_option() to turn
  * themselves on/off -- see QrCodeMetaBox, BarcodeMetaBox,
- * BookDetailsMetaBox, AdminMenu, BooksListTable, BooksPage, and
- * DashboardPage), Display (currency/date format, read by the
+ * BookDetailsMetaBox, AdminMenu, BooksListTable, BooksPage,
+ * DashboardPage, and Notifications\BorrowNotifications/
+ * Notifications\OverdueReminders), Display (currency/date format, read by the
  * sb_format_currency()/sb_format_date() helpers), and External APIs
  * (optional Google Books / Open Library lookups). Each tab is its own
  * Settings API "page" (do_settings_sections() only renders one at a
@@ -97,7 +98,7 @@ final class SettingsPage implements Hookable {
 	}
 
 	/**
-	 * "Features" section: the four plugin-wide feature toggles.
+	 * "Features" section: the five plugin-wide feature toggles.
 	 */
 	private function register_features_section(): void {
 		add_settings_section(
@@ -135,6 +136,14 @@ final class SettingsPage implements Hookable {
 			'sb_enable_reading_tracker',
 			__( 'Reading Tracker', 'smartbook' ),
 			array( $this, 'render_enable_reading_tracker_field' ),
+			self::TAB_FEATURES,
+			self::SECTION_FEATURES
+		);
+
+		add_settings_field(
+			'sb_enable_email_notifications',
+			__( 'Email Notifications', 'smartbook' ),
+			array( $this, 'render_enable_email_notifications_field' ),
 			self::TAB_FEATURES,
 			self::SECTION_FEATURES
 		);
@@ -275,6 +284,16 @@ final class SettingsPage implements Hookable {
 		$this->render_checkbox(
 			'enable_reading_tracker',
 			__( 'Show the Reading Status/Progress fields on each book, plus the related dashboard stats and chart.', 'smartbook' )
+		);
+	}
+
+	/**
+	 * Render the "Enable Email Notifications" checkbox.
+	 */
+	public function render_enable_email_notifications_field(): void {
+		$this->render_checkbox(
+			'enable_email_notifications',
+			__( 'Email the admin on every new borrow/return request, email the requester when it\'s approved or denied, email the borrower when a return is confirmed, and send a daily reminder for overdue/due-soon loans.', 'smartbook' )
 		);
 	}
 

@@ -35,17 +35,18 @@ final class Settings {
 	 * @var array<string, mixed>
 	 */
 	private const DEFAULTS = array(
-		'enable_logging'         => true,
-		'log_level'              => 'error',
-		'currency'               => 'USD',
-		'date_format'            => 'Y-m-d',
-		'enable_qr'              => true,
-		'enable_barcode'         => true,
-		'enable_borrow'          => true,
-		'enable_reading_tracker' => true,
-		'google_books_enabled'   => false,
-		'google_books_api_key'   => '',
-		'open_library_enabled'   => false,
+		'enable_logging'              => true,
+		'log_level'                   => 'error',
+		'currency'                    => 'USD',
+		'date_format'                 => 'Y-m-d',
+		'enable_qr'                   => true,
+		'enable_barcode'              => true,
+		'enable_borrow'               => true,
+		'enable_reading_tracker'      => true,
+		'enable_email_notifications'  => true,
+		'google_books_enabled'        => false,
+		'google_books_api_key'        => '',
+		'open_library_enabled'        => false,
 	);
 
 	/**
@@ -70,6 +71,7 @@ final class Settings {
 		'enable_barcode',
 		'enable_borrow',
 		'enable_reading_tracker',
+		'enable_email_notifications',
 		'google_books_enabled',
 		'open_library_enabled',
 	);

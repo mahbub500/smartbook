@@ -126,6 +126,14 @@ final class BorrowedBooksPage implements Hookable {
 		update_post_meta( $post_id, 'sb_returned', '1' );
 		delete_post_meta( $post_id, 'sb_return_request' );
 
+		/**
+		 * Fires once a return is confirmed, for
+		 * Notifications\BorrowNotifications to email the borrower.
+		 *
+		 * @param int $post_id Book post ID.
+		 */
+		do_action( 'sb_return_confirmed', $post_id );
+
 		$this->redirect_with_notice( 'success', __( 'Book marked as returned.', 'smartbook' ) );
 	}
 
@@ -160,6 +168,15 @@ final class BorrowedBooksPage implements Hookable {
 		delete_post_meta( $post_id, 'sb_borrow_request_user' );
 		delete_post_meta( $post_id, 'sb_borrow_request_date' );
 
+		/**
+		 * Fires once a borrow request is approved, for
+		 * Notifications\BorrowNotifications to email the requester.
+		 *
+		 * @param int $post_id      Book post ID.
+		 * @param int $requester_id Requester's user ID.
+		 */
+		do_action( 'sb_borrow_approved', $post_id, $requester_id );
+
 		$this->redirect_with_notice( 'success', __( 'Request approved; the book is now on loan.', 'smartbook' ), array( 'status' => 'requests' ) );
 	}
 
@@ -176,8 +193,21 @@ final class BorrowedBooksPage implements Hookable {
 			wp_die( esc_html__( 'You do not have permission to perform this action.', 'smartbook' ) );
 		}
 
+		$requester_id = (int) get_post_meta( $post_id, 'sb_borrow_request_user', true );
+
 		delete_post_meta( $post_id, 'sb_borrow_request_user' );
 		delete_post_meta( $post_id, 'sb_borrow_request_date' );
+
+		if ( $requester_id > 0 ) {
+			/**
+			 * Fires once a borrow request is denied, for
+			 * Notifications\BorrowNotifications to email the requester.
+			 *
+			 * @param int $post_id      Book post ID.
+			 * @param int $requester_id Requester's user ID.
+			 */
+			do_action( 'sb_borrow_denied', $post_id, $requester_id );
+		}
 
 		$this->redirect_with_notice( 'success', __( 'Request denied.', 'smartbook' ), array( 'status' => 'requests' ) );
 	}
