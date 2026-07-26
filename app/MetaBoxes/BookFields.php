@@ -97,14 +97,6 @@ final class BookFields {
 				'label' => __( 'Purchase Date', 'smartbook' ),
 				'type'  => 'date',
 			),
-			'sb_rating'        => array(
-				'label'        => __( 'Rating', 'smartbook' ),
-				'type'         => 'number',
-				'numeric_type' => 'int',
-				'min'          => 0,
-				'max'          => 5,
-				'step'         => 1,
-			),
 			'sb_status'        => array(
 				'label'   => __( 'Reading Status', 'smartbook' ),
 				'type'    => 'select',
@@ -287,8 +279,8 @@ final class BookFields {
 				'gate'   => 'enable_reading_tracker',
 			),
 			'rating'          => array(
-				'title'  => __( 'Rating & Lists', 'smartbook' ),
-				'fields' => array( 'sb_rating', 'sb_favorite', 'sb_wishlist' ),
+				'title'  => __( 'Lists', 'smartbook' ),
+				'fields' => array( 'sb_favorite', 'sb_wishlist' ),
 				'gate'   => null,
 			),
 			'borrow'          => array(

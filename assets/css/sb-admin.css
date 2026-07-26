@@ -964,6 +964,12 @@
 	white-space: nowrap;
 }
 
+.sb-books-table__rating-count {
+	color: var( --sb-color-text-muted );
+	font-size: 0.9em;
+	white-space: nowrap;
+}
+
 .sb-books-table__favorite {
 	color: var( --sb-color-text-muted );
 }

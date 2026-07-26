@@ -12,6 +12,7 @@ namespace SmartBook\Frontend;
 use SmartBook\Core\Contracts\Hookable;
 use SmartBook\MetaBoxes\BookFields;
 use SmartBook\PostTypes\BookPostType;
+use SmartBook\Services\CommentRating;
 use SmartBook\Taxonomies\AuthorTaxonomy;
 use SmartBook\Taxonomies\CollectionTaxonomy;
 use SmartBook\Taxonomies\GenreTaxonomy;
@@ -47,11 +48,6 @@ use function sb_option;
  * for site admins, not something to broadcast to an arbitrary visitor.
  */
 final class BookContentDisplay implements Hookable {
-
-	/**
-	 * Comment meta key a comment's star rating is stored under.
-	 */
-	private const RATING_META_KEY = 'sb_comment_rating';
 
 	/**
 	 * {@inheritDoc}
@@ -128,7 +124,7 @@ final class BookContentDisplay implements Hookable {
 			return $fields;
 		}
 
-		return array_merge( array( self::RATING_META_KEY => $this->rating_field_html() ), $fields );
+		return array_merge( array( CommentRating::META_KEY => $this->rating_field_html() ), $fields );
 	}
 
 	/**
@@ -145,7 +141,7 @@ final class BookContentDisplay implements Hookable {
 			$stars .= sprintf(
 				'<input type="radio" id="sb-comment-rating-%1$d" name="%2$s" value="%1$d" /><label for="sb-comment-rating-%1$d" title="%3$s">&#9733;</label>',
 				$value,
-				esc_attr( self::RATING_META_KEY ),
+				esc_attr( CommentRating::META_KEY ),
 				esc_attr(
 					sprintf(
 						/* translators: %d: number of stars, 1-5. */
@@ -174,17 +170,17 @@ final class BookContentDisplay implements Hookable {
 			return;
 		}
 
-		if ( ! isset( $_POST[ self::RATING_META_KEY ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- wp-comments-post.php has already run its own nonce/referer checks by the time the "comment_post" action fires; this only reads one more field off that same already-validated submission.
+		if ( ! isset( $_POST[ CommentRating::META_KEY ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- wp-comments-post.php has already run its own nonce/referer checks by the time the "comment_post" action fires; this only reads one more field off that same already-validated submission.
 			return;
 		}
 
-		$rating = absint( wp_unslash( $_POST[ self::RATING_META_KEY ] ) );
+		$rating = absint( wp_unslash( $_POST[ CommentRating::META_KEY ] ) );
 
 		if ( $rating < 1 || $rating > 5 ) {
 			return;
 		}
 
-		update_comment_meta( $comment_id, self::RATING_META_KEY, $rating );
+		update_comment_meta( $comment_id, CommentRating::META_KEY, $rating );
 	}
 
 	/**
@@ -199,7 +195,7 @@ final class BookContentDisplay implements Hookable {
 			return $comment_text;
 		}
 
-		$rating = (int) get_comment_meta( $comment->comment_ID, self::RATING_META_KEY, true );
+		$rating = (int) get_comment_meta( $comment->comment_ID, CommentRating::META_KEY, true );
 
 		if ( $rating < 1 || $rating > 5 ) {
 			return $comment_text;
@@ -219,13 +215,12 @@ final class BookContentDisplay implements Hookable {
 	}
 
 	/**
-	 * Render the average reader rating (from commenters' star ratings,
-	 * not the admin-set "sb_rating" field already shown alongside it in
-	 * the hero) plus how many ratings it's based on. '' when nobody has
-	 * rated yet.
+	 * Render the average reader rating (Services\CommentRating::average(),
+	 * from commenters' own star ratings) plus how many ratings it's based
+	 * on. '' when nobody has rated yet.
 	 */
 	private function render_average_rating( int $post_id ): string {
-		[ $average, $count ] = $this->average_rating( $post_id );
+		[ $average, $count ] = CommentRating::average( $post_id );
 
 		if ( 0 === $count ) {
 			return '';
@@ -245,38 +240,6 @@ final class BookContentDisplay implements Hookable {
 				)
 			)
 		);
-	}
-
-	/**
-	 * Average of every approved comment's star rating on this book (see
-	 * append_comment_rating()'s "sb_comment_rating" comment meta), and
-	 * how many ratings that average is based on.
-	 *
-	 * @return array{0: float, 1: int}
-	 */
-	private function average_rating( int $post_id ): array {
-		$comments = get_comments(
-			array(
-				'post_id' => $post_id,
-				'status'  => 'approve',
-			)
-		);
-
-		$ratings = array();
-
-		foreach ( $comments as $comment ) {
-			$rating = (int) get_comment_meta( $comment->comment_ID, self::RATING_META_KEY, true );
-
-			if ( $rating >= 1 && $rating <= 5 ) {
-				$ratings[] = $rating;
-			}
-		}
-
-		if ( array() === $ratings ) {
-			return array( 0.0, 0 );
-		}
-
-		return array( array_sum( $ratings ) / count( $ratings ), count( $ratings ) );
 	}
 
 	/**

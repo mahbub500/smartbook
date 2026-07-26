@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace SmartBook\Admin\Tables;
 
 use SmartBook\PostTypes\BookPostType;
+use SmartBook\Services\CommentRating;
 use SmartBook\Taxonomies\AuthorTaxonomy;
 use SmartBook\Taxonomies\GenreTaxonomy;
 use SmartBook\Taxonomies\ShelfTaxonomy;
@@ -70,7 +71,6 @@ final class BooksListTable extends WP_List_Table {
 			'title'  => array( 'title', false ),
 			'isbn'   => array( 'sb_isbn', false ),
 			'status' => array( 'sb_status', false ),
-			'rating' => array( 'sb_rating', false ),
 		);
 	}
 
@@ -315,27 +315,33 @@ final class BooksListTable extends WP_List_Table {
 	}
 
 	/**
-	 * Star rating, 0-5.
+	 * Average reader star rating (Services\CommentRating::average(), from
+	 * front-end commenters' own ratings), rounded to the nearest whole
+	 * star, plus how many ratings it's based on. An em dash when nobody
+	 * has rated the book yet.
 	 *
 	 * @param WP_Post $item Current row.
 	 */
 	public function column_rating( WP_Post $item ): string {
-		$rating = max( 0, min( 5, (int) get_post_meta( $item->ID, 'sb_rating', true ) ) );
+		[ $average, $count ] = CommentRating::average( $item->ID );
 
-		if ( 0 === $rating ) {
+		if ( 0 === $count ) {
 			return '&#8212;';
 		}
 
+		$rounded = (int) round( $average );
+
 		return sprintf(
-			'<span class="sb-books-table__rating" aria-label="%1$s">%2$s</span>',
+			'<span class="sb-books-table__rating" aria-label="%1$s">%2$s</span> <span class="sb-books-table__rating-count">(%3$d)</span>',
 			esc_attr(
 				sprintf(
-					/* translators: %d: rating out of 5. */
-					__( '%d out of 5', 'smartbook' ),
-					$rating
+					/* translators: %s: average rating out of 5, one decimal place. */
+					__( '%s out of 5', 'smartbook' ),
+					number_format_i18n( $average, 1 )
 				)
 			),
-			esc_html( str_repeat( '★', $rating ) . str_repeat( '☆', 5 - $rating ) )
+			esc_html( str_repeat( '★', $rounded ) . str_repeat( '☆', 5 - $rounded ) ),
+			$count
 		);
 	}
 
@@ -512,14 +518,6 @@ final class BooksListTable extends WP_List_Table {
 	private function apply_sort_args( array &$args ): void {
 		$orderby = isset( $_REQUEST['orderby'] ) ? sanitize_key( wp_unslash( $_REQUEST['orderby'] ) ) : 'date';
 		$order   = isset( $_REQUEST['order'] ) && 'asc' === strtolower( sanitize_key( wp_unslash( $_REQUEST['order'] ) ) ) ? 'ASC' : 'DESC';
-
-		if ( 'sb_rating' === $orderby ) {
-			$args['meta_key'] = 'sb_rating'; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
-			$args['orderby']  = 'meta_value_num';
-			$args['order']    = $order;
-
-			return;
-		}
 
 		if ( in_array( $orderby, array( 'sb_isbn', 'sb_status' ), true ) ) {
 			$args['meta_key'] = $orderby; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
