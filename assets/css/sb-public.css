@@ -436,6 +436,208 @@
 }
 
 /* -------------------------------------------------------------------- */
+/* Gallery modal (assets/js/sb-public.js' sb_initGalleryModal())         */
+/* -------------------------------------------------------------------- */
+
+body.sb-gallery-modal-open {
+	overflow: hidden;
+}
+
+.sb-gallery-modal {
+	position: fixed;
+	z-index: 100000;
+	inset: 0;
+}
+
+.sb-gallery-modal__backdrop {
+	position: absolute;
+	inset: 0;
+	background: rgba( 0, 0, 0, 0.85 );
+}
+
+.sb-gallery-modal__content {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 40px;
+}
+
+.sb-gallery-modal__image {
+	max-width: 100%;
+	max-height: 100%;
+	object-fit: contain;
+	border-radius: 4px;
+	box-shadow: 0 8px 32px rgba( 0, 0, 0, 0.5 );
+}
+
+.sb-gallery-modal__close {
+	position: absolute;
+	top: 16px;
+	right: 16px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	background: rgba( 255, 255, 255, 0.1 );
+	border: 0;
+	border-radius: 50%;
+	color: #fff;
+	font-size: 24px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.sb-gallery-modal__close:hover,
+.sb-gallery-modal__close:focus-visible {
+	background: rgba( 255, 255, 255, 0.2 );
+}
+
+.sb-gallery-modal__nav {
+	position: absolute;
+	top: 50%;
+	transform: translateY( -50% );
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 48px;
+	height: 48px;
+	background: rgba( 255, 255, 255, 0.1 );
+	border: 0;
+	border-radius: 50%;
+	color: #fff;
+	font-size: 28px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.sb-gallery-modal__nav:hover,
+.sb-gallery-modal__nav:focus-visible {
+	background: rgba( 255, 255, 255, 0.2 );
+}
+
+.sb-gallery-modal__nav--prev {
+	left: 16px;
+}
+
+.sb-gallery-modal__nav--next {
+	right: 16px;
+}
+
+@media ( max-width: 480px ) {
+
+	.sb-gallery-modal__content {
+		padding: 16px;
+	}
+
+	.sb-gallery-modal__nav {
+		width: 40px;
+		height: 40px;
+		font-size: 22px;
+	}
+}
+
+/* -------------------------------------------------------------------- */
+/* Comments (native WordPress comments, opened for logged-in users only  */
+/* on a book's own page -- see Frontend\BookContentDisplay). Scoped to   */
+/* ".single-sb_book" (the body class WP adds on a book's own page) so   */
+/* none of this leaks onto the theme's ordinary posts/pages.             */
+/* -------------------------------------------------------------------- */
+
+.single-sb_book .comments-title,
+.single-sb_book .comment-reply-title {
+	margin: 32px 0 16px;
+	font-size: 1.2em;
+	color: var( --sb-color-text );
+}
+
+.single-sb_book .comment {
+	margin-bottom: 16px;
+	padding-bottom: 16px;
+	border-bottom: 1px solid var( --sb-color-border );
+	color: var( --sb-color-text );
+}
+
+.single-sb_book .comment-author .avatar {
+	margin-right: 8px;
+	border-radius: 50%;
+	vertical-align: middle;
+}
+
+.single-sb_book .comment-metadata,
+.single-sb_book .comment-author .fn {
+	font-size: 0.85em;
+	color: var( --sb-color-text-muted );
+}
+
+.single-sb_book .comment-content p {
+	margin: 8px 0 0;
+}
+
+.single-sb_book .comment-respond {
+	max-width: 640px;
+	margin-top: 24px;
+	padding: 16px 20px;
+	background: var( --sb-color-bg-subtle );
+	border: 1px solid var( --sb-color-border );
+	border-radius: 10px;
+}
+
+.single-sb_book .comment-form-comment label,
+.single-sb_book .comment-form-author label,
+.single-sb_book .comment-form-email label,
+.single-sb_book .comment-form-url label {
+	display: block;
+	font-size: 0.9em;
+	font-weight: 600;
+}
+
+.single-sb_book .comment-form input[type='text'],
+.single-sb_book .comment-form input[type='email'],
+.single-sb_book .comment-form input[type='url'],
+.single-sb_book .comment-form textarea {
+	box-sizing: border-box;
+	width: 100%;
+	margin-top: 4px;
+	padding: 8px 12px;
+	background: var( --sb-color-bg );
+	color: var( --sb-color-text );
+	border: 1px solid var( --sb-color-border );
+	border-radius: 6px;
+}
+
+.single-sb_book .form-submit input[type='submit'] {
+	padding: 8px 20px;
+	background: var( --sb-color-primary );
+	color: #fff;
+	border: 0;
+	border-radius: 6px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.single-sb_book .form-submit input[type='submit']:hover,
+.single-sb_book .form-submit input[type='submit']:focus-visible {
+	opacity: 0.9;
+}
+
+.single-sb_book .must-log-in,
+.single-sb_book .logged-in-as {
+	padding: 12px 16px;
+	background: var( --sb-color-bg-subtle );
+	border: 1px solid var( --sb-color-border );
+	border-radius: 8px;
+	color: var( --sb-color-text );
+}
+
+.single-sb_book .must-log-in a,
+.single-sb_book .logged-in-as a {
+	color: var( --sb-color-primary );
+}
+
+/* -------------------------------------------------------------------- */
 /* Book scan page (Frontend\BookScanPage), the full-page mobile view    */
 /* opened when a book's QR code is scanned                              */
 /* -------------------------------------------------------------------- */

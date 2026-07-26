@@ -29,7 +29,11 @@ use function sb_option;
  * progress) prepended before the post content, a bibliographic details
  * panel and any Summary/Notes appended after it, and a photo gallery
  * (the "sb_gallery" meta AddBookPage/EditBookPage's media picker
- * writes) at the very end.
+ * writes) at the very end. Also opens comments on every published book
+ * for logged-in users only (force_comments_open()/require_login()) --
+ * the theme's own comments_template() call still decides where on the
+ * page the actual comment list/form appears, same as it does for any
+ * other post type.
  *
  * Only ever shown on the book's own singular page, never in a loop/
  * archive/excerpt context (is_singular()/in_the_loop()/is_main_query()
@@ -45,6 +49,56 @@ final class BookContentDisplay implements Hookable {
 	 */
 	public function register_hooks(): void {
 		add_filter( 'the_content', array( $this, 'append_panel' ) );
+		add_filter( 'comments_open', array( $this, 'force_comments_open' ), 10, 2 );
+		add_filter( 'pre_option_comment_registration', array( $this, 'require_login_for_book_comments' ) );
+	}
+
+	/**
+	 * Every published book accepts comments, regardless of its own
+	 * stored "comment_status" -- necessary because that status is fixed
+	 * at creation time from the post type's default, so any book created
+	 * before "comments" was added to BookPostType's supports would
+	 * otherwise stay stuck closed forever.
+	 */
+	public function force_comments_open( bool $open, int $post_id ): bool {
+		if ( BookPostType::SLUG !== get_post_type( $post_id ) ) {
+			return $open;
+		}
+
+		return 'publish' === get_post_status( $post_id );
+	}
+
+	/**
+	 * Require a logged-in account to actually post a book comment
+	 * (reading existing comments stays open to everyone), by making
+	 * WordPress's own "comment_registration" option -- which
+	 * comment_form() and wp-comments-post.php both already check --
+	 * read as "on" specifically for a book, regardless of the sitewide
+	 * Settings > Discussion value.
+	 *
+	 * Checked two different ways because this same option is consulted
+	 * in two different contexts that don't share one signal: is_singular()
+	 * identifies the book while comment_form() is rendering the page, but
+	 * wp-comments-post.php (processing the actual submission) never runs
+	 * the normal query/template cycle, so is_singular() is always false
+	 * there -- $_POST['comment_post_ID'] is what it relies on instead.
+	 *
+	 * @param mixed $value The site's actual "comment_registration" option value.
+	 */
+	public function require_login_for_book_comments( mixed $value ): mixed {
+		$post_id = 0;
+
+		if ( isset( $_POST['comment_post_ID'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- read-only lookup of which post this is about; wp-comments-post.php itself owns the actual nonce/capability checks for the submission.
+			$post_id = absint( $_POST['comment_post_ID'] );
+		} elseif ( is_singular( BookPostType::SLUG ) ) {
+			$post_id = get_queried_object_id();
+		}
+
+		if ( $post_id > 0 && BookPostType::SLUG === get_post_type( $post_id ) ) {
+			return '1';
+		}
+
+		return $value;
 	}
 
 	/**
@@ -207,8 +261,12 @@ final class BookContentDisplay implements Hookable {
 
 	/**
 	 * A grid of the book's gallery photos (the "sb_gallery" meta the Add/
-	 * Edit Book media picker writes), each linking to its full-size image.
-	 * Empty when the book has no gallery.
+	 * Edit Book media picker writes). Each thumbnail is progressively
+	 * enhanced by sb-public.js' sb_initGalleryModal() into a click-to-open
+	 * modal with its full-size image (data-sb-gallery-full/-alt carry
+	 * what that needs); without JavaScript, the link still works as a
+	 * plain "open the full image" link. Empty when the book has no
+	 * gallery.
 	 */
 	private function render_gallery( int $post_id ): string {
 		$items = '';
@@ -221,10 +279,14 @@ final class BookContentDisplay implements Hookable {
 			}
 
 			$full_url = wp_get_attachment_image_url( $attachment_id, 'full' );
+			$full_url = false !== $full_url ? $full_url : '';
+			$alt      = get_post_meta( $attachment_id, '_wp_attachment_image_alt', true );
+			$alt      = '' !== $alt ? (string) $alt : get_the_title( $attachment_id );
 
 			$items .= sprintf(
-				'<a class="sb-book-gallery__item" href="%1$s" target="_blank" rel="noopener noreferrer">%2$s</a>',
-				esc_url( false !== $full_url ? $full_url : '' ),
+				'<a class="sb-book-gallery__item" href="%1$s" target="_blank" rel="noopener noreferrer" data-sb-gallery-full="%1$s" data-sb-gallery-alt="%2$s">%3$s</a>',
+				esc_url( $full_url ),
+				esc_attr( $alt ),
 				$thumb
 			);
 		}
@@ -235,7 +297,7 @@ final class BookContentDisplay implements Hookable {
 
 		return '<div class="sb-book-gallery">'
 			. sprintf( '<h2 class="sb-book-gallery__title">%s</h2>', esc_html__( 'Gallery', 'smartbook' ) )
-			. '<div class="sb-book-gallery__grid">' . $items . '</div>'
+			. '<div class="sb-book-gallery__grid" data-sb-gallery>' . $items . '</div>'
 			. '</div>';
 	}
 

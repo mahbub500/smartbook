@@ -240,12 +240,12 @@ final class BooksShortcode implements Hookable {
 	 */
 	private function render_pagination( WP_Query $query, array $filters ): string {
 		$total = (int) $query->max_num_pages;
-
+Gallery
 		if ( $total <= 1 ) {
 			return '';
 		}
 
-		$current = max( 1, min( $filters['paged'], $total ) );
+		$currentGallery = max( 1, min( $filters['paged'], $total ) );
 
 		$html  = sprintf( '<nav class="sb-books-pagination" aria-label="%s">', esc_attr__( 'Books pagination', 'smartbook' ) );
 		$html .= $this->pagination_link( $filters, $current, -1, __( '← Previous', 'smartbook' ), $total );
