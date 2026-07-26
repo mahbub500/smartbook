@@ -51,6 +51,34 @@ final class BooksPage {
 	}
 
 	/**
+	 * Register this page's "Screen Options" tab content: a "Number of
+	 * items per page" field (BooksListTable::prepare_items() already
+	 * reads back the "sb_books_per_page" user option this saves, via
+	 * WP_List_Table::get_items_per_page()) and per-column show/hide
+	 * checkboxes for every column BooksListTable defines. Hooked onto
+	 * this page's own "load-{hook}" action from AdminMenu::register() --
+	 * without an "option" registered here (or a "manage_{screen}_columns"
+	 * filter), WP_Screen::show_screen_options() has nothing to show and
+	 * the tab doesn't render at all.
+	 */
+	public function add_screen_options(): void {
+		add_screen_option(
+			'per_page',
+			array(
+				'label'   => __( 'Books', 'smartbook' ),
+				'default' => 20,
+				'option'  => 'sb_books_per_page',
+			)
+		);
+
+		$screen = get_current_screen();
+
+		if ( null !== $screen ) {
+			add_filter( "manage_{$screen->id}_columns", array( new BooksListTable(), 'get_columns' ) );
+		}
+	}
+
+	/**
 	 * Render the page: dispatches to the bulk-edit picker, processes a
 	 * pending action, resolves a barcode scan, or renders the list table.
 	 */

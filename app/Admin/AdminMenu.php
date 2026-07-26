@@ -106,6 +106,14 @@ final class AdminMenu implements Hookable {
 		add_action( 'admin_menu', array( $this, 'register' ) );
 		add_action( 'admin_head', array( $this, 'hide_from_menu' ) );
 		add_filter( 'parent_file', array( $this, 'fix_taxonomy_parent_file' ) );
+
+		// Must be live before wp-admin/admin.php's own set_screen_options()
+		// runs (it processes a submitted Screen Options form before the
+		// "admin_menu" action even fires), so this is registered here --
+		// unconditionally, on every request -- rather than inside
+		// register()'s "load-{hook}" callback (see BooksPage::add_screen_options()),
+		// which would be registered too late to save that very submission.
+		add_filter( 'set_screen_option_sb_books_per_page', static fn ( mixed $status, string $option, mixed $value ): mixed => $value, 10, 3 );
 	}
 
 	/**
@@ -161,7 +169,7 @@ final class AdminMenu implements Hookable {
 			array( $this->dashboard, 'render' )
 		);
 
-		add_submenu_page(
+		$books_hook = add_submenu_page(
 			self::PARENT_SLUG,
 			__( 'Books', 'smartbook' ),
 			__( 'Books', 'smartbook' ),
@@ -169,6 +177,10 @@ final class AdminMenu implements Hookable {
 			'sb_books',
 			array( $this->books, 'render' )
 		);
+
+		if ( false !== $books_hook ) {
+			add_action( "load-{$books_hook}", array( $this->books, 'add_screen_options' ) );
+		}
 
 		// Visible only when the Borrow Management feature itself is on --
 		// otherwise there is nothing this page could ever show.
