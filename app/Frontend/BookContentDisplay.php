@@ -298,7 +298,8 @@ final class BookContentDisplay implements Hookable {
 
 	/**
 	 * Build the "at a glance" hero: cover, byline, genre/format badges,
-	 * rating, price, and (when enabled) a reading-status/progress block.
+	 * price, reader-rating summary, and (when enabled) a reading-status/
+	 * progress block.
 	 */
 	private function render_hero( int $post_id ): string {
 		$html  = '<div class="sb-book-hero">';
@@ -324,13 +325,10 @@ final class BookContentDisplay implements Hookable {
 			);
 		}
 
-		$meta = array_filter(
-			array( $this->rating( $post_id ), $this->price( $post_id ) ),
-			static fn ( string $part ): bool => '' !== $part
-		);
+		$price = $this->price( $post_id );
 
-		if ( array() !== $meta ) {
-			$html .= sprintf( '<p class="sb-book-hero__meta">%s</p>', implode( ' &middot; ', $meta ) );
+		if ( '' !== $price ) {
+			$html .= sprintf( '<p class="sb-book-hero__meta">%s</p>', $price );
 		}
 
 		$html .= $this->render_average_rating( $post_id );
@@ -726,29 +724,6 @@ final class BookContentDisplay implements Hookable {
 		return sprintf(
 			'<div class="sb-book-panel__progress"><div class="sb-book-panel__progress-track"><div class="sb-book-panel__progress-fill" style="width:%1$d%%"></div></div><span>%1$d%%</span></div>',
 			$progress
-		);
-	}
-
-	/**
-	 * A star rating, already escaped.
-	 */
-	private function rating( int $post_id ): string {
-		$rating = max( 0, min( 5, (int) get_post_meta( $post_id, 'sb_rating', true ) ) );
-
-		if ( 0 === $rating ) {
-			return '';
-		}
-
-		return sprintf(
-			'<span class="sb-book-panel__rating" aria-label="%1$s">%2$s</span>',
-			esc_attr(
-				sprintf(
-					/* translators: %d: rating out of 5. */
-					__( '%d out of 5', 'smartbook' ),
-					$rating
-				)
-			),
-			esc_html( str_repeat( '★', $rating ) . str_repeat( '☆', 5 - $rating ) )
 		);
 	}
 

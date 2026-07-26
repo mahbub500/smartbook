@@ -12,6 +12,7 @@ namespace SmartBook\Frontend;
 use SmartBook\Core\Contracts\Hookable;
 use SmartBook\MetaBoxes\BookFields;
 use SmartBook\PostTypes\BookPostType;
+use SmartBook\Services\CommentRating;
 use SmartBook\Taxonomies\AuthorTaxonomy;
 use SmartBook\Taxonomies\GenreTaxonomy;
 use SmartBook\Taxonomies\PublisherTaxonomy;
@@ -46,6 +47,17 @@ final class BooksShortcode implements Hookable {
 	private const PER_PAGE = 12;
 
 	/**
+	 * Reader ratings for the current page's books, keyed by post ID --
+	 * populated once in render() (CommentRating::averages(), a single
+	 * batched query) rather than rating() calling CommentRating::average()
+	 * per book, which would run one get_comments() query for every book
+	 * on the page.
+	 *
+	 * @var array<int, array{0: float, 1: int}>
+	 */
+	private array $ratings = array();
+
+	/**
 	 * {@inheritDoc}
 	 */
 	public function register_hooks(): void {
@@ -59,6 +71,8 @@ final class BooksShortcode implements Hookable {
 	public function render(): string {
 		$filters = $this->current_filters();
 		$query   = $this->query( $filters );
+
+		$this->ratings = CommentRating::averages( wp_list_pluck( $query->posts, 'ID' ) );
 
 		$html  = '<div class="sb-books">';
 		$html .= $this->render_filter_bar( $filters );
@@ -432,16 +446,21 @@ final class BooksShortcode implements Hookable {
 	}
 
 	/**
-	 * A star rating, already escaped, omitted when unset.
+	 * A star rating, already escaped -- the average reader rating (from
+	 * the $ratings cache render() populates via CommentRating::averages(),
+	 * front-end commenters' own ratings), rounded to the nearest whole
+	 * star. Omitted when nobody has rated the book yet.
 	 */
 	private function rating( int $post_id ): string {
-		$rating = max( 0, min( 5, (int) get_post_meta( $post_id, 'sb_rating', true ) ) );
+		[ $average, $count ] = $this->ratings[ $post_id ] ?? array( 0.0, 0 );
 
-		if ( 0 === $rating ) {
+		if ( 0 === $count ) {
 			return '';
 		}
 
-		return esc_html( str_repeat( '★', $rating ) . str_repeat( '☆', 5 - $rating ) );
+		$rounded = (int) round( $average );
+
+		return esc_html( str_repeat( '★', $rounded ) . str_repeat( '☆', 5 - $rounded ) );
 	}
 
 	/**

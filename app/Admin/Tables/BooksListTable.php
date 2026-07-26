@@ -34,6 +34,17 @@ if ( ! class_exists( WP_List_Table::class ) ) {
  */
 final class BooksListTable extends WP_List_Table {
 
+	/**
+	 * Reader ratings for the current page's rows, keyed by post ID --
+	 * populated once in prepare_items() (CommentRating::averages(), a
+	 * single batched query) rather than column_rating() calling
+	 * CommentRating::average() per row, which would run one get_comments()
+	 * query for every visible book.
+	 *
+	 * @var array<int, array{0: float, 1: int}>
+	 */
+	private array $ratings = array();
+
 	public function __construct() {
 		parent::__construct(
 			array(
@@ -182,7 +193,8 @@ final class BooksListTable extends WP_List_Table {
 
 		$query = new WP_Query( $args );
 
-		$this->items = $query->posts;
+		$this->items   = $query->posts;
+		$this->ratings = CommentRating::averages( wp_list_pluck( $this->items, 'ID' ) );
 
 		$this->set_pagination_args(
 			array(
@@ -344,15 +356,15 @@ final class BooksListTable extends WP_List_Table {
 	}
 
 	/**
-	 * Average reader star rating (Services\CommentRating::average(), from
-	 * front-end commenters' own ratings), rounded to the nearest whole
-	 * star, plus how many ratings it's based on. An em dash when nobody
-	 * has rated the book yet.
+	 * Average reader star rating (from the $ratings cache prepare_items()
+	 * populates via CommentRating::averages(), front-end commenters' own
+	 * ratings), rounded to the nearest whole star, plus how many ratings
+	 * it's based on. An em dash when nobody has rated the book yet.
 	 *
 	 * @param WP_Post $item Current row.
 	 */
 	public function column_rating( WP_Post $item ): string {
-		[ $average, $count ] = CommentRating::average( $item->ID );
+		[ $average, $count ] = $this->ratings[ $item->ID ] ?? array( 0.0, 0 );
 
 		if ( 0 === $count ) {
 			return '&#8212;';

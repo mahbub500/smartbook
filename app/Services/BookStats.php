@@ -15,6 +15,7 @@ use SmartBook\PostTypes\BookPostType;
 use SmartBook\Taxonomies\AuthorTaxonomy;
 use SmartBook\Taxonomies\GenreTaxonomy;
 use WP_Post;
+use WP_Query;
 use WP_User;
 
 /**
@@ -85,10 +86,22 @@ final class BookStats {
 	/**
 	 * Number of books with a pending "request to borrow" awaiting
 	 * approval, for the "Borrowed Books" sidebar menu's notification
-	 * bubble (see AdminMenu::add_borrow_request_bubble()).
+	 * bubble (see AdminMenu::register()). Deliberately does not reuse
+	 * posts()/pending_borrow_requests() -- AdminMenu calls this while
+	 * building the admin sidebar on *every* wp-admin screen, not just
+	 * SmartBook's own pages, so it runs its own lightweight, ids-only
+	 * query instead of hydrating the whole catalog on every backend
+	 * request.
 	 */
 	public function count_pending_borrow_requests(): int {
-		return count( $this->pending_borrow_requests() );
+		return $this->count_by_meta_query(
+			array(
+				array(
+					'key'     => 'sb_borrow_request_user',
+					'compare' => 'EXISTS',
+				),
+			)
+		);
 	}
 
 	/**
@@ -203,20 +216,50 @@ final class BookStats {
 
 	/**
 	 * Number of active loans with a pending return request awaiting
-	 * admin confirmation, for the "Borrowed Books" sidebar menu's
-	 * notification bubble (see AdminMenu::add_borrow_request_bubble()).
+	 * admin confirmation, for the same sidebar bubble as
+	 * count_pending_borrow_requests() (see its own doc comment for why
+	 * this runs a lightweight, ids-only query instead of posts()).
+	 * Matching just the "sb_return_request" meta is enough on its own --
+	 * it's only ever set while a book is actively on loan
+	 * (Frontend\BorrowRequestController::handle_return_request()'s
+	 * is_borrowed_by() guard) and always cleared the moment a return is
+	 * confirmed (Admin\Pages\BorrowedBooksPage::handle_mark_returned()),
+	 * so there's no "sb_borrowed"/"sb_returned" case where it can be set
+	 * on a loan that isn't still active.
 	 */
 	public function count_pending_return_requests(): int {
-		return count(
-			array_filter(
-				$this->posts(),
-				static function ( WP_Post $post ): bool {
-					return '1' === (string) get_post_meta( $post->ID, 'sb_borrowed', true )
-						&& '1' !== (string) get_post_meta( $post->ID, 'sb_returned', true )
-						&& '1' === (string) get_post_meta( $post->ID, 'sb_return_request', true );
-				}
+		return $this->count_by_meta_query(
+			array(
+				array(
+					'key'   => 'sb_return_request',
+					'value' => '1',
+				),
 			)
 		);
+	}
+
+	/**
+	 * Count of "sb_book" posts matching a meta_query, via a minimal,
+	 * ids-only WP_Query -- no post hydration, no full-catalog PHP-side
+	 * filtering. Backs the two sidebar-bubble counts above, which run on
+	 * every wp-admin screen and so need to stay cheap regardless of
+	 * catalog size.
+	 *
+	 * @param array<int, array<string, mixed>> $meta_query WP_Query meta_query clauses.
+	 */
+	private function count_by_meta_query( array $meta_query ): int {
+		$query = new WP_Query(
+			array(
+				'post_type'      => BookPostType::SLUG,
+				'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
+				'posts_per_page' => 1,
+				'fields'         => 'ids',
+				'no_found_rows'  => false,
+				'meta_query'     => $meta_query, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+			)
+		);
+
+		return (int) $query->found_posts;
 	}
 
 	/**

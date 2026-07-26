@@ -28,15 +28,36 @@ final class CommentRating {
 	/**
 	 * Average of every approved comment's star rating on a book, and how
 	 * many ratings that average is based on. array(0.0, 0) when nobody
-	 * has rated yet.
+	 * has rated yet. A thin wrapper around averages() for the common
+	 * single-post case (e.g. the single book page's own reader-rating
+	 * summary) -- for a whole page of posts at once, call averages()
+	 * directly instead, so as not to run one get_comments() query per
+	 * post (see Admin\Tables\BooksListTable::prepare_items()).
 	 *
 	 * @return array{0: float, 1: int}
 	 */
 	public static function average( int $post_id ): array {
+		return self::averages( array( $post_id ) )[ $post_id ] ?? array( 0.0, 0 );
+	}
+
+	/**
+	 * Average rating (and count) for every post ID given, in a single
+	 * batched query. Only posts with at least one valid rating appear
+	 * in the returned array; a post with none is simply absent from it.
+	 *
+	 * @param int[] $post_ids Post IDs to average ratings for.
+	 *
+	 * @return array<int, array{0: float, 1: int}> Post ID => [average, count].
+	 */
+	public static function averages( array $post_ids ): array {
+		if ( array() === $post_ids ) {
+			return array();
+		}
+
 		$comments = get_comments(
 			array(
-				'post_id' => $post_id,
-				'status'  => 'approve',
+				'post__in' => $post_ids,
+				'status'   => 'approve',
 			)
 		);
 
@@ -45,15 +66,19 @@ final class CommentRating {
 		foreach ( $comments as $comment ) {
 			$rating = (int) get_comment_meta( $comment->comment_ID, self::META_KEY, true );
 
-			if ( $rating >= 1 && $rating <= 5 ) {
-				$ratings[] = $rating;
+			if ( $rating < 1 || $rating > 5 ) {
+				continue;
 			}
+
+			$ratings[ (int) $comment->comment_post_ID ][] = $rating;
 		}
 
-		if ( array() === $ratings ) {
-			return array( 0.0, 0 );
+		$averages = array();
+
+		foreach ( $ratings as $post_id => $values ) {
+			$averages[ $post_id ] = array( array_sum( $values ) / count( $values ), count( $values ) );
 		}
 
-		return array( array_sum( $ratings ) / count( $ratings ), count( $ratings ) );
+		return $averages;
 	}
 }

@@ -12,6 +12,7 @@ namespace SmartBook\Frontend;
 use SmartBook\Core\Contracts\Hookable;
 use SmartBook\MetaBoxes\BookFields;
 use SmartBook\PostTypes\BookPostType;
+use SmartBook\Services\CommentRating;
 use SmartBook\Taxonomies\AuthorTaxonomy;
 use SmartBook\Taxonomies\ShelfTaxonomy;
 use WP_Post;
@@ -226,16 +227,21 @@ final class BookScanPage implements Hookable {
 	}
 
 	/**
-	 * A star rating, already escaped, omitted when unset.
+	 * A star rating, already escaped -- the average reader rating
+	 * (Services\CommentRating::average(), from front-end commenters' own
+	 * ratings), rounded to the nearest whole star. Omitted when nobody
+	 * has rated the book yet.
 	 */
 	private function rating( int $post_id ): string {
-		$rating = max( 0, min( 5, (int) get_post_meta( $post_id, 'sb_rating', true ) ) );
+		[ $average, $count ] = CommentRating::average( $post_id );
 
-		if ( 0 === $rating ) {
+		if ( 0 === $count ) {
 			return '';
 		}
 
-		return esc_html( str_repeat( '★', $rating ) . str_repeat( '☆', 5 - $rating ) );
+		$rounded = (int) round( $average );
+
+		return esc_html( str_repeat( '★', $rounded ) . str_repeat( '☆', 5 - $rounded ) );
 	}
 
 	/**
