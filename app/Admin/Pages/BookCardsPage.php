@@ -136,15 +136,9 @@ final class BookCardsPage extends AbstractLabelsPage {
 	}
 
 	/**
-	 * ISBN-13 if set, falling back to ISBN-10, '' if neither is.
+	 * The book's ISBN-10, '' if unset.
 	 */
 	private function isbn( int $post_id ): string {
-		$isbn13 = (string) get_post_meta( $post_id, 'sb_isbn13', true );
-
-		if ( '' !== $isbn13 ) {
-			return $isbn13;
-		}
-
 		return (string) get_post_meta( $post_id, 'sb_isbn', true );
 	}
 

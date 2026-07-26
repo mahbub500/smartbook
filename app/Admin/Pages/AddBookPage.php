@@ -84,10 +84,13 @@ final class AddBookPage extends AbstractBookFormPage {
 	}
 
 	/**
-	 * Process the submitted form: create the book via
-	 * BookRowSchema::apply_row(), then apply the cover/gallery images and
-	 * description, which apply_row() doesn't handle (it only knows about
-	 * BookFields meta and taxonomies, not core post_content/thumbnail).
+	 * Process the submitted form: validate it (BookFormValidator::validate()
+	 * -- required title, ISBN-10/13 format, non-negative Pages/Price, a
+	 * real Purchase Date, and no existing book matching this ISBN/title),
+	 * then create the book via BookRowSchema::apply_row(), then apply the
+	 * cover/gallery images and description, which apply_row() doesn't
+	 * handle (it only knows about BookFields meta and taxonomies, not
+	 * core post_content/thumbnail).
 	 */
 	public function handle_save(): void {
 		if ( ! $this->can_access() ) {
@@ -97,10 +100,6 @@ final class AddBookPage extends AbstractBookFormPage {
 		check_admin_referer( self::NONCE_ACTION, self::NONCE_NAME );
 
 		$title = isset( $_POST['post_title'] ) ? sanitize_text_field( wp_unslash( $_POST['post_title'] ) ) : '';
-
-		if ( '' === $title ) {
-			$this->redirect_with_notice( 'error', __( 'Please enter a title.', 'smartbook' ) );
-		}
 
 		$status = isset( $_POST['post_status'] ) ? sanitize_key( wp_unslash( $_POST['post_status'] ) ) : 'publish';
 
@@ -115,6 +114,12 @@ final class AddBookPage extends AbstractBookFormPage {
 			),
 			$this->collect_posted_row()
 		);
+
+		$validation_error = BookFormValidator::validate( $data );
+
+		if ( null !== $validation_error ) {
+			$this->redirect_with_notice( 'error', $validation_error );
+		}
 
 		$result = BookRowSchema::apply_row( $data );
 

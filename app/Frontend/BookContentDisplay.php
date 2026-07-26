@@ -535,7 +535,6 @@ final class BookContentDisplay implements Hookable {
 		$rows .= $this->render_row( __( 'Series', 'smartbook' ), $this->terms( $post_id, SeriesTaxonomy::SLUG ) );
 		$rows .= $this->render_row( __( 'Collection', 'smartbook' ), $this->terms( $post_id, CollectionTaxonomy::SLUG ) );
 		$rows .= $this->render_row( __( 'ISBN-10', 'smartbook' ), $this->field( $post_id, 'sb_isbn' ) );
-		$rows .= $this->render_row( __( 'ISBN-13', 'smartbook' ), $this->field( $post_id, 'sb_isbn13' ) );
 		$rows .= $this->render_row( __( 'Pages', 'smartbook' ), $this->field( $post_id, 'sb_pages' ) );
 		$rows .= $this->render_row( __( 'Edition', 'smartbook' ), $this->field( $post_id, 'sb_edition' ) );
 		$rows .= $this->render_row( __( 'Language', 'smartbook' ), $this->field( $post_id, 'sb_language' ) );

@@ -11,6 +11,7 @@ namespace SmartBook\Admin\Pages;
 
 use SmartBook\Admin\Support\RedirectsWithNotice;
 use SmartBook\Admin\Tables\BooksListTable;
+use SmartBook\Core\Contracts\Hookable;
 use SmartBook\MetaBoxes\BookFields;
 use SmartBook\PostTypes\BookPostType;
 use SmartBook\Taxonomies\GenreTaxonomy;
@@ -26,8 +27,19 @@ use SmartBook\Taxonomies\ShelfTaxonomy;
  * nonce, reused for single-row action links too) and capability-checked
  * per post via current_user_can( 'edit_post' | 'delete_post', $id ),
  * which resolves through BookPostType's custom capability mapping.
+ *
+ * Trash/untrash/delete and the bulk-edit "Apply Changes" submission are
+ * both processed on "admin_init" (maybe_process_action()), not inline in
+ * render() -- render() is this page's add_submenu_page() callback,
+ * invoked well after wp-admin's own header/scripts have already been
+ * output, so a wp_safe_redirect() attempted from inside it always fails
+ * with a "headers already sent" warning (the redirect Location header
+ * never actually reaches the browser, but the exit; still runs, leaving
+ * a broken half-rendered page). "admin_init" fires before any of that
+ * output starts, so the exact same redirect_with_notice() calls work
+ * correctly from there instead.
  */
-final class BooksPage {
+final class BooksPage implements Hookable {
 
 	use RedirectsWithNotice;
 
@@ -40,6 +52,45 @@ final class BooksPage {
 	 * Nonce action for the intermediate bulk-edit form's own submission.
 	 */
 	private const BULK_EDIT_NONCE_ACTION = 'sb_bulk_edit_apply';
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function register_hooks(): void {
+		add_action( 'admin_init', array( $this, 'maybe_process_action' ) );
+	}
+
+	/**
+	 * Process a pending trash/untrash/delete row action or a bulk-edit
+	 * "Apply Changes" submission, if this request is actually for this
+	 * page -- both end in a redirect (see this class's own doc comment
+	 * for why that has to happen here, on "admin_init", rather than
+	 * inline in render()). Anything else (a plain page view, or the
+	 * bulk-edit *picker* itself) is left entirely to render().
+	 */
+	public function maybe_process_action(): void {
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+		if ( self::PAGE_SLUG !== $page ) {
+			return;
+		}
+
+		if ( ! current_user_can( BookPostType::CAP_EDIT_BOOKS ) ) {
+			return;
+		}
+
+		$ids = $this->requested_ids();
+
+		if ( $this->is_bulk_edit_apply_request() ) {
+			$this->handle_bulk_edit_apply( $ids );
+		}
+
+		$action = ( new BooksListTable() )->current_action();
+
+		if ( in_array( $action, array( 'trash', 'untrash', 'delete' ), true ) && array() !== $ids ) {
+			$this->handle_row_action( $action, $ids );
+		}
+	}
 
 	/**
 	 * Register this page's "Screen Options" tab content: a "Number of
@@ -70,8 +121,11 @@ final class BooksPage {
 	}
 
 	/**
-	 * Render the page: dispatches to the bulk-edit picker, processes a
-	 * pending action, or renders the list table.
+	 * Render the page: dispatches to the bulk-edit picker, or renders the
+	 * list table. Trash/untrash/delete and the bulk-edit "Apply Changes"
+	 * submission are already handled by maybe_process_action() on
+	 * "admin_init" (and end in a redirect, so this point is never reached
+	 * for those) -- only the bulk-edit *picker* itself is rendered here.
 	 */
 	public function render(): void {
 		if ( ! current_user_can( BookPostType::CAP_EDIT_BOOKS ) ) {
@@ -80,10 +134,6 @@ final class BooksPage {
 
 		$ids = $this->requested_ids();
 
-		if ( $this->is_bulk_edit_apply_request() ) {
-			$this->handle_bulk_edit_apply( $ids );
-		}
-
 		$table  = new BooksListTable();
 		$action = $table->current_action();
 
@@ -91,10 +141,6 @@ final class BooksPage {
 			check_admin_referer( 'bulk-books' );
 			$this->render_bulk_edit_form( $ids );
 			return;
-		}
-
-		if ( in_array( $action, array( 'trash', 'untrash', 'delete' ), true ) && array() !== $ids ) {
-			$this->handle_row_action( $action, $ids );
 		}
 
 		$table->prepare_items();
@@ -340,7 +386,7 @@ final class BooksPage {
 	/**
 	 * {@inheritDoc}
 	 */
-	private function notice_page_slug(): string {
+	protected function notice_page_slug(): string {
 		return self::PAGE_SLUG;
 	}
 }

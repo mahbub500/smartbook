@@ -20,9 +20,14 @@ trait RedirectsWithNotice {
 
 	/**
 	 * The admin page slug to redirect back to; implemented by the class
-	 * using this trait.
+	 * using this trait. Protected, not private: AbstractBookFormPage uses
+	 * this trait itself, but it's AddBookPage/EditBookPage -- its
+	 * subclasses -- that actually implement this and call
+	 * redirect_with_notice() below from their own handle_save(); a
+	 * private trait method is only visible to the exact class that used
+	 * the trait, not to further subclasses of it.
 	 */
-	abstract private function notice_page_slug(): string;
+	abstract protected function notice_page_slug(): string;
 
 	/**
 	 * Redirect back to the page with a result notice, then terminate the
@@ -34,7 +39,7 @@ trait RedirectsWithNotice {
 	 *                                           EditBookPage's "book_id", so the page it
 	 *                                           redirects back to still knows which book).
 	 */
-	private function redirect_with_notice( string $type, string $message, array $extra_args = array() ): never {
+	protected function redirect_with_notice( string $type, string $message, array $extra_args = array() ): never {
 		wp_safe_redirect(
 			add_query_arg(
 				array_merge(
@@ -57,7 +62,7 @@ trait RedirectsWithNotice {
 	 *
 	 * @return array{type: string, message: string}|null
 	 */
-	private function consume_notice(): ?array {
+	protected function consume_notice(): ?array {
 		if ( ! isset( $_GET['sb_notice'] ) ) {
 			return null;
 		}
@@ -73,7 +78,7 @@ trait RedirectsWithNotice {
 	/**
 	 * Render the pending notice, if any, escaping it at the point of output.
 	 */
-	private function render_notice(): void {
+	protected function render_notice(): void {
 		$notice = $this->consume_notice();
 
 		if ( null === $notice ) {

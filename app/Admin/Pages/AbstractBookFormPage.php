@@ -119,7 +119,7 @@ abstract class AbstractBookFormPage implements Hookable {
 	/**
 	 * {@inheritDoc}
 	 */
-	private function notice_page_slug(): string {
+	protected function notice_page_slug(): string {
 		return $this->page_slug();
 	}
 

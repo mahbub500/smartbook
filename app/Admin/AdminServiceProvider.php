@@ -143,6 +143,7 @@ final class AdminServiceProvider extends AbstractServiceProvider {
 	public function boot( ContainerInterface $container ): void {
 		$container->make( AdminMenu::class )->register_hooks();
 		$container->make( DashboardPage::class )->register_hooks();
+		$container->make( BooksPage::class )->register_hooks();
 		$container->make( BorrowedBooksPage::class )->register_hooks();
 		$container->make( AddBookPage::class )->register_hooks();
 		$container->make( EditBookPage::class )->register_hooks();

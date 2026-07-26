@@ -38,11 +38,6 @@ final class BookFields {
 				'type'        => 'text',
 				'description' => __( '10-character International Standard Book Number.', 'smartbook' ),
 			),
-			'sb_isbn13'        => array(
-				'label'       => __( 'ISBN-13', 'smartbook' ),
-				'type'        => 'text',
-				'description' => __( '13-character International Standard Book Number.', 'smartbook' ),
-			),
 			'sb_barcode'       => array(
 				'label'       => __( 'Barcode', 'smartbook' ),
 				'type'        => 'text',
@@ -265,7 +260,7 @@ final class BookFields {
 		return array(
 			'identification'  => array(
 				'title'  => __( 'Identification', 'smartbook' ),
-				'fields' => array( 'sb_isbn', 'sb_isbn13', 'sb_barcode', 'sb_pages', 'sb_edition', 'sb_language', 'sb_format' ),
+				'fields' => array( 'sb_isbn', 'sb_barcode', 'sb_pages', 'sb_edition', 'sb_language', 'sb_format' ),
 				'gate'   => null,
 			),
 			'condition'       => array(
