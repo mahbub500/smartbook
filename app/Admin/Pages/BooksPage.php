@@ -108,7 +108,7 @@ final class BooksPage {
 		printf( '<h1>%s ', esc_html__( 'Books', 'smartbook' ) );
 		printf(
 			'<a href="%s" class="page-title-action">%s</a></h1>',
-			esc_url( admin_url( 'post-new.php?post_type=' . BookPostType::SLUG ) ),
+			esc_url( admin_url( 'admin.php?page=sb_add_book' ) ),
 			esc_html__( 'Add New', 'smartbook' )
 		);
 

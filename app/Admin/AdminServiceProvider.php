@@ -9,15 +9,19 @@ declare(strict_types=1);
 
 namespace SmartBook\Admin;
 
+use SmartBook\Admin\Pages\AddBookPage;
 use SmartBook\Admin\Pages\BarcodeLabelsPage;
 use SmartBook\Admin\Pages\BooksPage;
 use SmartBook\Admin\Pages\DashboardPage;
+use SmartBook\Admin\Pages\EditBookPage;
 use SmartBook\Admin\Pages\ImportExportPage;
 use SmartBook\Admin\Pages\QrLabelsPage;
 use SmartBook\Admin\Pages\SettingsPage;
 use SmartBook\Admin\Pages\StatisticsPage;
 use SmartBook\Core\AbstractServiceProvider;
 use SmartBook\Core\Contracts\ContainerInterface;
+use SmartBook\MetaBoxes\BarcodeMetaBox;
+use SmartBook\MetaBoxes\QrCodeMetaBox;
 use SmartBook\Services\BarcodeManager;
 use SmartBook\Services\BookStats;
 use SmartBook\Services\Import\FormatRegistry;
@@ -44,6 +48,16 @@ final class AdminServiceProvider extends AbstractServiceProvider {
 		$container->singleton(
 			BooksPage::class,
 			static fn ( ContainerInterface $container ): BooksPage => new BooksPage( $container->make( BarcodeManager::class ) )
+		);
+
+		$container->singleton( AddBookPage::class, static fn (): AddBookPage => new AddBookPage() );
+
+		$container->singleton(
+			EditBookPage::class,
+			static fn ( ContainerInterface $container ): EditBookPage => new EditBookPage(
+				$container->make( QrCodeMetaBox::class ),
+				$container->make( BarcodeMetaBox::class )
+			)
 		);
 
 		$container->singleton( StatisticsPage::class, static fn (): StatisticsPage => new StatisticsPage() );
@@ -84,6 +98,8 @@ final class AdminServiceProvider extends AbstractServiceProvider {
 			static fn ( ContainerInterface $container ): AdminMenu => new AdminMenu(
 				$container->make( DashboardPage::class ),
 				$container->make( BooksPage::class ),
+				$container->make( AddBookPage::class ),
+				$container->make( EditBookPage::class ),
 				$container->make( StatisticsPage::class ),
 				$container->make( ImportExportPage::class ),
 				$container->make( QrLabelsPage::class ),
@@ -99,6 +115,8 @@ final class AdminServiceProvider extends AbstractServiceProvider {
 	public function boot( ContainerInterface $container ): void {
 		$container->make( AdminMenu::class )->register_hooks();
 		$container->make( DashboardPage::class )->register_hooks();
+		$container->make( AddBookPage::class )->register_hooks();
+		$container->make( EditBookPage::class )->register_hooks();
 		$container->make( ImportExportPage::class )->register_hooks();
 		$container->make( ImportExportAjaxController::class )->register_hooks();
 		$container->make( SettingsPage::class )->register_hooks();

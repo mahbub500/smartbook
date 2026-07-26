@@ -11,12 +11,16 @@ namespace SmartBook\MetaBoxes;
 
 use DateTimeImmutable;
 
+use function sb_option;
+
 /**
  * Single source of truth for the sixteen "sb_"-prefixed book meta
- * fields: their labels, input types, and sanitization rules. Consumed
- * by BookDetailsMetaBox (edit-screen UI) and Admin\Pages\ImportExportPage
- * (CSV import/export) so both stay in lock-step with the same field set
- * instead of maintaining two divergent copies.
+ * fields: their labels, input types, sanitization rules, section
+ * grouping, and input markup. Consumed by BookDetailsMetaBox (edit-screen
+ * UI), Admin\Pages\AddBookPage (the custom "Add New Book" form), and
+ * Admin\Pages\ImportExportPage (CSV import/export) so all three stay in
+ * lock-step with the same field set instead of maintaining divergent
+ * copies.
  */
 final class BookFields {
 
@@ -252,5 +256,166 @@ final class BookFields {
 		$normalized = strtolower( trim( (string) $raw ) );
 
 		return in_array( $normalized, array( '1', 'true', 'yes', 'on' ), true ) ? '1' : '';
+	}
+
+	/**
+	 * Field keys grouped into display sections, in render order. A
+	 * section with a non-null "gate" is only rendered/saved when the
+	 * named Settings\Settings boolean is true -- see visible_sections().
+	 * Shared by BookDetailsMetaBox (the edit-screen meta box) and
+	 * Admin\Pages\AddBookPage (the custom "Add New Book" form), so both
+	 * present the exact same grouping.
+	 *
+	 * @return array<string, array{title: string, fields: string[], gate: ?string}>
+	 */
+	public static function sections(): array {
+		return array(
+			'identification'  => array(
+				'title'  => __( 'Identification', 'smartbook' ),
+				'fields' => array( 'sb_isbn', 'sb_isbn13', 'sb_barcode', 'sb_pages', 'sb_edition', 'sb_language', 'sb_format' ),
+				'gate'   => null,
+			),
+			'condition'       => array(
+				'title'  => __( 'Condition & Value', 'smartbook' ),
+				'fields' => array( 'sb_condition', 'sb_price', 'sb_purchase_date' ),
+				'gate'   => null,
+			),
+			'reading_tracker' => array(
+				'title'  => __( 'Reading Progress', 'smartbook' ),
+				'fields' => array( 'sb_status', 'sb_progress' ),
+				'gate'   => 'enable_reading_tracker',
+			),
+			'rating'          => array(
+				'title'  => __( 'Rating & Lists', 'smartbook' ),
+				'fields' => array( 'sb_rating', 'sb_favorite', 'sb_wishlist' ),
+				'gate'   => null,
+			),
+			'borrow'          => array(
+				'title'  => __( 'Borrow Management', 'smartbook' ),
+				'fields' => array( 'sb_borrowed', 'sb_borrowed_to', 'sb_borrow_date', 'sb_return_date', 'sb_reminder', 'sb_returned', 'sb_lost' ),
+				'gate'   => 'enable_borrow',
+			),
+			'notes'           => array(
+				'title'  => __( 'Notes', 'smartbook' ),
+				'fields' => array( 'sb_notes', 'sb_summary' ),
+				'gate'   => null,
+			),
+		);
+	}
+
+	/**
+	 * sections(), minus any section whose "gate" setting is currently off.
+	 *
+	 * @return array<string, array{title: string, fields: string[], gate: ?string}>
+	 */
+	public static function visible_sections(): array {
+		return array_filter(
+			self::sections(),
+			static fn ( array $section ): bool => null === $section['gate'] || sb_option( $section['gate'], true )
+		);
+	}
+
+	/**
+	 * Render a single field's label plus its typed input control, escaping
+	 * every dynamic value at the point of output.
+	 *
+	 * @param string               $key   Meta key, e.g. "sb_isbn".
+	 * @param array<string, mixed> $field Field definition from definitions().
+	 * @param mixed                $value Current value (empty string for a not-yet-created book).
+	 */
+	public static function render_field( string $key, array $field, mixed $value ): void {
+		$id = esc_attr( $key );
+
+		if ( 'checkbox' === $field['type'] ) {
+			printf(
+				'<div class="sb-field-group sb-field-group--checkbox"><label for="%1$s"><input type="checkbox" id="%1$s" name="%1$s" value="1" %2$s /> %3$s</label></div>',
+				esc_attr( $id ),
+				checked( '1', $value, false ),
+				esc_html( $field['label'] )
+			);
+
+			return;
+		}
+
+		printf(
+			'<div class="sb-field-group%s">',
+			'textarea' === $field['type'] ? ' sb-field-group--full' : ''
+		);
+
+		printf( '<label for="%1$s">%2$s</label>', esc_attr( $id ), esc_html( $field['label'] ) );
+
+		switch ( $field['type'] ) {
+			case 'textarea':
+				printf(
+					'<textarea id="%1$s" name="%1$s" class="widefat" rows="4">%2$s</textarea>',
+					esc_attr( $id ),
+					esc_textarea( (string) $value )
+				);
+				break;
+
+			case 'select':
+				printf( '<select id="%1$s" name="%1$s" class="regular-text">', esc_attr( $id ) );
+
+				foreach ( $field['options'] as $option_value => $option_label ) {
+					printf(
+						'<option value="%1$s" %2$s>%3$s</option>',
+						esc_attr( $option_value ),
+						selected( $value, $option_value, false ),
+						esc_html( $option_label )
+					);
+				}
+
+				echo '</select>';
+				break;
+
+			case 'number':
+				printf(
+					'<input type="number" id="%1$s" name="%1$s" value="%2$s" class="regular-text" %3$s />',
+					esc_attr( $id ),
+					esc_attr( (string) $value ),
+					self::numeric_attributes( $field )
+				);
+				break;
+
+			case 'date':
+				printf(
+					'<input type="date" id="%1$s" name="%1$s" value="%2$s" class="regular-text" />',
+					esc_attr( $id ),
+					esc_attr( (string) $value )
+				);
+				break;
+
+			default:
+				printf(
+					'<input type="text" id="%1$s" name="%1$s" value="%2$s" class="regular-text" />',
+					esc_attr( $id ),
+					esc_attr( (string) $value )
+				);
+				break;
+		}
+
+		if ( ! empty( $field['description'] ) ) {
+			printf( '<p class="description">%s</p>', esc_html( $field['description'] ) );
+		}
+
+		echo '</div>';
+	}
+
+	/**
+	 * Build an already-escaped "min=... max=... step=..." attribute
+	 * fragment for a number input, omitting any bound the field doesn't declare.
+	 *
+	 * @param array<string, mixed> $field Field definition, may contain "min", "max", "step".
+	 */
+	private static function numeric_attributes( array $field ): string {
+		$attributes = array();
+
+		foreach ( array( 'min', 'max', 'step' ) as $attribute ) {
+			if ( isset( $field[ $attribute ] ) ) {
+				$attributes[] = sprintf( '%s="%s"', $attribute, esc_attr( (string) $field[ $attribute ] ) );
+			}
+		}
+
+		return implode( ' ', $attributes );
 	}
 }

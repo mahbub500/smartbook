@@ -9,9 +9,11 @@ declare(strict_types=1);
 
 namespace SmartBook\Admin;
 
+use SmartBook\Admin\Pages\AddBookPage;
 use SmartBook\Admin\Pages\BarcodeLabelsPage;
 use SmartBook\Admin\Pages\BooksPage;
 use SmartBook\Admin\Pages\DashboardPage;
+use SmartBook\Admin\Pages\EditBookPage;
 use SmartBook\Admin\Pages\ImportExportPage;
 use SmartBook\Admin\Pages\QrLabelsPage;
 use SmartBook\Admin\Pages\SettingsPage;
@@ -28,8 +30,9 @@ use function sb_option;
 /**
  * Registers the top-level "SmartBook" admin menu and its nine entries:
  * Dashboard, Books, Authors, Genres, Publishers, Shelves, Statistics,
- * Import Export, and Settings, plus two deliberately hidden label-print
- * pages, "QR Labels" and "Barcode Labels" (see register()).
+ * Import Export, and Settings, plus four deliberately hidden pages: the
+ * label-print pages "QR Labels" and "Barcode Labels", and the custom
+ * "Add New Book"/"Edit Book" forms (see register()).
  *
  * BookPostType and the four linked taxonomies are registered with
  * show_in_menu => false, so WordPress does not also auto-add its own
@@ -44,8 +47,22 @@ final class AdminMenu implements Hookable {
 	public const PARENT_SLUG = 'sb_dashboard';
 
 	/**
+	 * Page slugs that are registered with add_submenu_page() (so they
+	 * route, are capability-gated, and get a title) but must not appear
+	 * in the rendered sidebar -- see hide_from_menu(). "sb_edit_book"'s
+	 * own bare sidebar link (no "book_id") is what gets hidden here; the
+	 * real, per-book "Edit" links (BooksListTable) carry a "book_id" and
+	 * live in the books table, not #adminmenu, so this doesn't touch them.
+	 *
+	 * @var string[]
+	 */
+	private const HIDDEN_SLUGS = array( 'sb_add_book', 'sb_edit_book', 'sb_qr_labels', 'sb_barcode_labels' );
+
+	/**
 	 * @param DashboardPage     $dashboard      Dashboard page renderer.
 	 * @param BooksPage         $books          Books list page renderer.
+	 * @param AddBookPage       $add_book       Custom "Add New Book" form renderer.
+	 * @param EditBookPage      $edit_book      Custom "Edit Book" form renderer.
 	 * @param StatisticsPage    $statistics     Statistics page renderer.
 	 * @param ImportExportPage  $import_export  Import/export page renderer.
 	 * @param QrLabelsPage      $qr_labels      QR label print page renderer.
@@ -55,6 +72,8 @@ final class AdminMenu implements Hookable {
 	public function __construct(
 		private readonly DashboardPage $dashboard,
 		private readonly BooksPage $books,
+		private readonly AddBookPage $add_book,
+		private readonly EditBookPage $edit_book,
 		private readonly StatisticsPage $statistics,
 		private readonly ImportExportPage $import_export,
 		private readonly QrLabelsPage $qr_labels,
@@ -68,6 +87,7 @@ final class AdminMenu implements Hookable {
 	 */
 	public function register_hooks(): void {
 		add_action( 'admin_menu', array( $this, 'register' ) );
+		add_action( 'admin_head', array( $this, 'hide_from_menu' ) );
 	}
 
 	/**
@@ -161,14 +181,46 @@ final class AdminMenu implements Hookable {
 			array( $this->settings, 'render' )
 		);
 
+		// Registered so admin.php?page=sb_add_book routes and is
+		// capability-gated like any other page; kept out of the visible
+		// menu by hide_from_menu() (CSS), not remove_submenu_page() --
+		// see that method's doc comment for why. It's reached via the
+		// "Add New" button on the Books page, the Dashboard's quick link,
+		// and a redirect from WordPress's own post-new.php (see
+		// AddBookPage::redirect_legacy_add_new()), not via direct
+		// navigation.
+		add_submenu_page(
+			self::PARENT_SLUG,
+			__( 'Add New Book', 'smartbook' ),
+			__( 'Add New Book', 'smartbook' ),
+			BookPostType::CAP_EDIT_BOOKS,
+			'sb_add_book',
+			array( $this->add_book, 'render' )
+		);
+
+		// Same as "Add New Book" above, but for editing an existing one:
+		// reached via the books table's per-row "Edit" link/title link
+		// (which append their own "book_id"), or a redirect from
+		// WordPress's own post.php edit screen (see
+		// EditBookPage::redirect_native_edit()), not via direct navigation.
+		add_submenu_page(
+			self::PARENT_SLUG,
+			__( 'Edit Book', 'smartbook' ),
+			__( 'Edit Book', 'smartbook' ),
+			BookPostType::CAP_EDIT_BOOKS,
+			'sb_edit_book',
+			array( $this->edit_book, 'render' )
+		);
+
 		// Registered so admin.php?page=sb_qr_labels (and sb_barcode_labels
-		// below) route and are capability-gated like any other page, then
-		// immediately hidden from the visible menu: both are reached via
-		// the books table's "Print ... Labels" bulk actions, their per-row
-		// "Print Label" links, and their respective meta boxes, not via
-		// direct navigation. Skipped entirely when the matching feature
-		// is disabled (Settings\Settings), so the page simply doesn't
-		// exist rather than existing-but-hidden.
+		// below) route and are capability-gated like any other page;
+		// kept out of the visible menu by hide_from_menu() (CSS), not
+		// remove_submenu_page() -- see that method's doc comment for why.
+		// Both are reached via the books table's "Print ... Labels" bulk
+		// actions, their per-row "Print Label" links, and their respective
+		// meta boxes, not via direct navigation. Skipped entirely when the
+		// matching feature is disabled (Settings\Settings), so the page
+		// simply doesn't exist rather than existing-but-hidden.
 		if ( sb_option( 'enable_qr', true ) ) {
 			add_submenu_page(
 				self::PARENT_SLUG,
@@ -178,8 +230,6 @@ final class AdminMenu implements Hookable {
 				'sb_qr_labels',
 				array( $this->qr_labels, 'render' )
 			);
-
-			remove_submenu_page( self::PARENT_SLUG, 'sb_qr_labels' );
 		}
 
 		if ( sb_option( 'enable_barcode', true ) ) {
@@ -191,9 +241,37 @@ final class AdminMenu implements Hookable {
 				'sb_barcode_labels',
 				array( $this->barcode_labels, 'render' )
 			);
-
-			remove_submenu_page( self::PARENT_SLUG, 'sb_barcode_labels' );
 		}
+	}
+
+	/**
+	 * Hide HIDDEN_SLUGS' links from the rendered admin sidebar with CSS,
+	 * instead of remove_submenu_page().
+	 *
+	 * remove_submenu_page() deletes the entry from the global $submenu
+	 * array, which breaks WordPress's own access check for *direct*
+	 * admin.php?page=... navigation to a page whose parent is a custom
+	 * top-level menu (as PARENT_SLUG is): user_can_access_admin_page()
+	 * calls get_admin_page_parent() with no arguments, which re-derives
+	 * the current page's parent slug by searching $submenu -- and once
+	 * the entry is gone, it can no longer find it, resolves to no parent,
+	 * and computes a different (wrong) hook name than the one the page
+	 * was actually registered under. The mismatch makes WordPress deny
+	 * access with "Sorry, you are not allowed to access this page,"
+	 * exactly on the pages this was meant to keep reachable. CSS hides
+	 * the link without touching $submenu, so registration and the
+	 * capability check both keep working.
+	 */
+	public function hide_from_menu(): void {
+		$selectors = array();
+
+		foreach ( self::HIDDEN_SLUGS as $slug ) {
+			$href        = esc_attr( 'admin.php?page=' . $slug );
+			$selectors[] = sprintf( '#adminmenu a[href="%s"]', $href );
+			$selectors[] = sprintf( '#adminmenu li:has(> a[href="%s"])', $href );
+		}
+
+		printf( '<style>%s{display:none;}</style>', implode( ',', $selectors ) );
 	}
 
 	/**

@@ -331,6 +331,248 @@
 	}
 
 	/**
+	 * Wire up each Add Book taxonomy picker's "+ Add new" control: reveal
+	 * the inline mini-form, then on "Add" (or Enter in the text field)
+	 * either check an already-listed term with the same name or append a
+	 * fresh checked checkbox for it. Purely a client-side convenience --
+	 * the appended checkbox posts like any other, and an unrecognised
+	 * name is created automatically server-side on save (see
+	 * AddBookPage::render_taxonomy_field()'s doc comment).
+	 */
+	function sb_initTaxonomyPickers( sb_scope ) {
+		var sb_pickers = sb_scope.querySelectorAll( '[data-sb-taxonomy-picker]' );
+
+		sb_pickers.forEach( function ( sb_picker ) {
+			var sb_toggle = sb_picker.querySelector( '.sb-taxonomy-picker__toggle' );
+			var sb_addPanel = sb_picker.querySelector( '.sb-taxonomy-picker__add' );
+			var sb_input = sb_picker.querySelector( '.sb-taxonomy-picker__input' );
+			var sb_addButton = sb_picker.querySelector( '.sb-taxonomy-picker__add-button' );
+			var sb_list = sb_picker.querySelector( '.sb-taxonomy-picker__list' );
+
+			if ( ! sb_toggle || ! sb_addPanel || ! sb_input || ! sb_addButton || ! sb_list ) {
+				return;
+			}
+
+			sb_toggle.addEventListener( 'click', function () {
+				sb_addPanel.classList.remove( 'sb-hidden' );
+				sb_input.focus();
+			} );
+
+			var sb_addTerm = function () {
+				var sb_name = sb_input.value.trim();
+
+				if ( '' === sb_name ) {
+					return;
+				}
+
+				var sb_existing = null;
+
+				sb_list.querySelectorAll( 'input[type="checkbox"]' ).forEach( function ( sb_checkbox ) {
+					if ( sb_checkbox.value.toLowerCase() === sb_name.toLowerCase() ) {
+						sb_existing = sb_checkbox;
+					}
+				} );
+
+				if ( sb_existing ) {
+					sb_existing.checked = true;
+				} else {
+					var sb_fieldName = sb_input.getAttribute( 'data-sb-taxonomy-field' );
+					var sb_item = sb_document.createElement( 'li' );
+					var sb_label = sb_document.createElement( 'label' );
+					var sb_checkbox = sb_document.createElement( 'input' );
+
+					sb_checkbox.type = 'checkbox';
+					sb_checkbox.name = sb_fieldName + '[]';
+					sb_checkbox.value = sb_name;
+					sb_checkbox.checked = true;
+
+					sb_label.appendChild( sb_checkbox );
+					sb_label.appendChild( sb_document.createTextNode( ' ' + sb_name ) );
+					sb_item.appendChild( sb_label );
+					sb_list.appendChild( sb_item );
+				}
+
+				sb_input.value = '';
+				sb_input.focus();
+			};
+
+			sb_addButton.addEventListener( 'click', sb_addTerm );
+
+			sb_input.addEventListener( 'keydown', function ( sb_event ) {
+				if ( 'Enter' === sb_event.key ) {
+					sb_event.preventDefault();
+					sb_addTerm();
+				}
+			} );
+		} );
+	}
+
+	/**
+	 * Read a browser cookie by name, or null if it isn't set.
+	 */
+	function sb_readCookie( sb_name ) {
+		var sb_match = sb_document.cookie.match( new RegExp( '(?:^|; )' + sb_name + '=([^;]*)' ) );
+
+		return sb_match ? decodeURIComponent( sb_match[ 1 ] ) : null;
+	}
+
+	/**
+	 * Write a browser cookie using the same path WordPress's own cookies
+	 * use (sbAdmin.cookiePath), so a PHP-side setcookie() with that same
+	 * path (e.g. AddBookPage::clear_draft_cookie()) can actually clear it.
+	 */
+	function sb_writeCookie( sb_name, sb_value ) {
+		var sb_path = ( sb_window.sbAdmin && sb_window.sbAdmin.cookiePath ) || '/';
+
+		sb_document.cookie = sb_name + '=' + encodeURIComponent( sb_value ) + '; path=' + sb_path + '; max-age=86400';
+	}
+
+	/**
+	 * Every field inside a form that a draft should track: anything with
+	 * a "name", except the nonce/action bookkeeping fields and file
+	 * inputs (a file input's value can't be read back or restored by
+	 * script, for browser security reasons -- the cover image/gallery
+	 * pickers instead keep their selection in a hidden attachment-id
+	 * field, which this *does* cover).
+	 */
+	function sb_draftableFields( sb_form ) {
+		var sb_fields = Array.prototype.slice.call( sb_form.querySelectorAll( '[name]' ) );
+
+		return sb_fields.filter( function ( sb_field ) {
+			return 'file' !== sb_field.type
+				&& '_wpnonce' !== sb_field.name
+				&& '_wp_http_referer' !== sb_field.name
+				&& 'action' !== sb_field.name;
+		} );
+	}
+
+	/**
+	 * Serialize a form's current, draftable field values into a plain
+	 * object keyed by field name (array-named fields, e.g. "authors[]",
+	 * collapse to their base name with an array of values).
+	 */
+	function sb_serializeDraft( sb_form ) {
+		var sb_data = {};
+
+		sb_draftableFields( sb_form ).forEach( function ( sb_field ) {
+			var sb_isArrayField = sb_field.name.slice( -2 ) === '[]';
+			var sb_key = sb_isArrayField ? sb_field.name.slice( 0, -2 ) : sb_field.name;
+
+			if ( 'checkbox' === sb_field.type ) {
+				if ( sb_isArrayField ) {
+					if ( ! Array.isArray( sb_data[ sb_key ] ) ) {
+						sb_data[ sb_key ] = [];
+					}
+					if ( sb_field.checked ) {
+						sb_data[ sb_key ].push( sb_field.value );
+					}
+				} else {
+					sb_data[ sb_key ] = sb_field.checked;
+				}
+				return;
+			}
+
+			sb_data[ sb_key ] = sb_field.value;
+		} );
+
+		return sb_data;
+	}
+
+	/**
+	 * Restore a form's field values from a previously serialized draft
+	 * (see sb_serializeDraft()). A checked value with no matching
+	 * checkbox yet (a taxonomy term that was only ever added client-side
+	 * via sb_initTaxonomyPickers(), in a session before this reload)
+	 * gets a fresh checkbox appended the same way that picker would.
+	 */
+	function sb_restoreDraft( sb_form, sb_data ) {
+		Object.keys( sb_data ).forEach( function ( sb_key ) {
+			var sb_value = sb_data[ sb_key ];
+
+			if ( Array.isArray( sb_value ) ) {
+				var sb_checkboxes = sb_form.querySelectorAll( 'input[type="checkbox"][name="' + sb_key + '[]"]' );
+				var sb_list = sb_checkboxes.length ? sb_checkboxes[ 0 ].closest( '.sb-taxonomy-picker__list' ) : null;
+
+				sb_value.forEach( function ( sb_name ) {
+					var sb_found = false;
+
+					sb_checkboxes.forEach( function ( sb_checkbox ) {
+						if ( sb_checkbox.value === sb_name ) {
+							sb_checkbox.checked = true;
+							sb_found = true;
+						}
+					} );
+
+					if ( ! sb_found && sb_list ) {
+						var sb_item = sb_document.createElement( 'li' );
+						var sb_label = sb_document.createElement( 'label' );
+						var sb_checkbox = sb_document.createElement( 'input' );
+
+						sb_checkbox.type = 'checkbox';
+						sb_checkbox.name = sb_key + '[]';
+						sb_checkbox.value = sb_name;
+						sb_checkbox.checked = true;
+
+						sb_label.appendChild( sb_checkbox );
+						sb_label.appendChild( sb_document.createTextNode( ' ' + sb_name ) );
+						sb_item.appendChild( sb_label );
+						sb_list.appendChild( sb_item );
+					}
+				} );
+
+				return;
+			}
+
+			var sb_field = sb_form.querySelector( '[name="' + sb_key + '"]' );
+
+			if ( ! sb_field ) {
+				return;
+			}
+
+			if ( 'checkbox' === sb_field.type ) {
+				sb_field.checked = Boolean( sb_value );
+			} else {
+				sb_field.value = sb_value;
+				sb_field.dispatchEvent( new Event( 'input', { bubbles: true } ) );
+			}
+		} );
+	}
+
+	/**
+	 * Mirror every "[data-sb-draft-cookie]" form's field values to a
+	 * cookie as the user types, and restore them from that cookie on
+	 * load. Protects against losing everything typed to an accidental
+	 * reload/back-navigation, or to a server-side validation redirect
+	 * that bounces back to a blank copy of the same form (e.g.
+	 * AddBookPage::handle_save()'s missing-title check) -- the cookie is
+	 * only ever cleared server-side, once the save actually succeeds.
+	 */
+	function sb_initFormDraft( sb_scope ) {
+		var sb_forms = sb_scope.querySelectorAll( '[data-sb-draft-cookie]' );
+
+		sb_forms.forEach( function ( sb_form ) {
+			var sb_cookieName = sb_form.getAttribute( 'data-sb-draft-cookie' );
+			var sb_raw = sb_readCookie( sb_cookieName );
+
+			if ( sb_raw ) {
+				try {
+					sb_restoreDraft( sb_form, JSON.parse( sb_raw ) );
+				} catch ( sb_error ) {
+					// Corrupt/foreign cookie value -- ignore it rather than throw.
+				}
+			}
+
+			sb_form.addEventListener( 'input', function () {
+				sb_writeCookie( sb_cookieName, JSON.stringify( sb_serializeDraft( sb_form ) ) );
+			} );
+
+			sb_form.addEventListener( 'change', function () {
+				sb_writeCookie( sb_cookieName, JSON.stringify( sb_serializeDraft( sb_form ) ) );
+			} );
+		} );
+	}
+
+	/**
 	 * Wire up the QR label selection checklist's "Select All" checkbox.
 	 */
 	function sb_initSelectAll( sb_scope ) {
@@ -350,6 +592,7 @@
 	}
 
 	sb_ready( function () {
+		sb_initFormDraft( sb_document );
 		sb_initNotices( sb_document );
 		sb_initAccordions( sb_document );
 		sb_initRatingFields( sb_document );
@@ -360,6 +603,7 @@
 		sb_initPrintButtons( sb_document );
 		sb_initSelectAll( sb_document );
 		sb_initTabs( sb_document );
+		sb_initTaxonomyPickers( sb_document );
 
 		sb_document.dispatchEvent( new CustomEvent( 'sb:admin:ready', { detail: sb_window.sbAdmin } ) );
 	} );

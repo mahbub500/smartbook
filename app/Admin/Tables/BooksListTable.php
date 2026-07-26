@@ -234,14 +234,14 @@ final class BooksListTable extends WP_List_Table {
 	}
 
 	/**
-	 * Title column, linking to the native post edit screen.
+	 * Title column, linking to the custom Edit Book page.
 	 *
 	 * @param WP_Post $item Current row.
 	 */
 	public function column_title( $item ): string {
 		return sprintf(
 			'<strong><a class="row-title" href="%s">%s</a></strong>',
-			esc_url( (string) get_edit_post_link( $item->ID ) ),
+			esc_url( $this->edit_book_link( $item->ID ) ),
 			esc_html( get_the_title( $item ) )
 		);
 	}
@@ -378,7 +378,7 @@ final class BooksListTable extends WP_List_Table {
 
 		$links[] = sprintf(
 			'<a class="button button-small" href="%s">%s</a>',
-			esc_url( (string) get_edit_post_link( $item->ID ) ),
+			esc_url( $this->edit_book_link( $item->ID ) ),
 			esc_html__( 'Edit', 'smartbook' )
 		);
 
@@ -429,6 +429,22 @@ final class BooksListTable extends WP_List_Table {
 				'page'            => $page_slug,
 				'sb_book_id'      => array( $post_id ),
 				'sb_print_labels' => '1',
+			),
+			admin_url( 'admin.php' )
+		);
+	}
+
+	/**
+	 * URL to the custom Edit Book page (Admin\Pages\EditBookPage) for a
+	 * given book -- not get_edit_post_link()/the native post editor,
+	 * which EditBookPage's own redirect_native_edit() bounces back here
+	 * anyway; linking straight to it avoids that extra redirect hop.
+	 */
+	private function edit_book_link( int $post_id ): string {
+		return add_query_arg(
+			array(
+				'page'    => 'sb_edit_book',
+				'book_id' => $post_id,
 			),
 			admin_url( 'admin.php' )
 		);

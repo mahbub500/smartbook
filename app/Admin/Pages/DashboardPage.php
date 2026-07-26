@@ -135,7 +135,7 @@ final class DashboardPage implements Hookable {
 			esc_html__( 'Quick Links', 'smartbook' )
 		);
 		echo '<div class="sb-quick-links">';
-		$this->render_link( __( 'Add New Book', 'smartbook' ), admin_url( 'post-new.php?post_type=' . BookPostType::SLUG ), 'plus-alt' );
+		$this->render_link( __( 'Add New Book', 'smartbook' ), admin_url( 'admin.php?page=sb_add_book' ), 'plus-alt' );
 		$this->render_link( __( 'View All Books', 'smartbook' ), admin_url( 'admin.php?page=sb_books' ), 'book-alt' );
 		$this->render_link( __( 'View Statistics', 'smartbook' ), admin_url( 'admin.php?page=sb_statistics' ), 'chart-bar' );
 		$this->render_link( __( 'Import / Export', 'smartbook' ), admin_url( 'admin.php?page=sb_import_export' ), 'upload' );

@@ -27,14 +27,23 @@ trait RedirectsWithNotice {
 	/**
 	 * Redirect back to the page with a result notice, then terminate the
 	 * request (standard for a POST/admin-post.php handler).
+	 *
+	 * @param string               $type        "error" or "success".
+	 * @param string               $message     Notice text.
+	 * @param array<string, mixed> $extra_args  Additional query args to carry over (e.g.
+	 *                                           EditBookPage's "book_id", so the page it
+	 *                                           redirects back to still knows which book).
 	 */
-	private function redirect_with_notice( string $type, string $message ): never {
+	private function redirect_with_notice( string $type, string $message, array $extra_args = array() ): never {
 		wp_safe_redirect(
 			add_query_arg(
-				array(
-					'page'           => $this->notice_page_slug(),
-					'sb_notice'      => rawurlencode( $message ),
-					'sb_notice_type' => $type,
+				array_merge(
+					$extra_args,
+					array(
+						'page'           => $this->notice_page_slug(),
+						'sb_notice'      => rawurlencode( $message ),
+						'sb_notice_type' => $type,
+					)
 				),
 				admin_url( 'admin.php' )
 			)
