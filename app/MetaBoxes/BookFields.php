@@ -146,8 +146,8 @@ final class BookFields {
 			),
 			'sb_borrowed_to'   => array(
 				'label'       => __( 'Borrowed To', 'smartbook' ),
-				'type'        => 'text',
-				'description' => __( 'Name of the person who has this book.', 'smartbook' ),
+				'type'        => 'user_select',
+				'description' => __( 'Pick from this site\'s registered users.', 'smartbook' ),
 			),
 			'sb_borrow_date'   => array(
 				'label' => __( 'Borrow Date', 'smartbook' ),
@@ -368,6 +368,28 @@ final class BookFields {
 				echo '</select>';
 				break;
 
+			case 'user_select':
+				// Progressively enhanced into a searchable, scrollable
+				// combobox by sb-admin.js' sb_initUserSelects() -- the
+				// <select> itself stays in the DOM (hidden) and is what
+				// actually submits with the form.
+				echo '<div class="sb-user-select" data-sb-user-select>';
+				printf( '<select id="%1$s" name="%1$s" class="sb-user-select__native">', esc_attr( $id ) );
+				printf( '<option value="">%s</option>', esc_html__( '— Select —', 'smartbook' ) );
+
+				foreach ( self::user_options() as $option_value => $option_label ) {
+					printf(
+						'<option value="%1$s" %2$s>%3$s</option>',
+						esc_attr( $option_value ),
+						selected( $value, $option_value, false ),
+						esc_html( $option_label )
+					);
+				}
+
+				echo '</select>';
+				echo '</div>';
+				break;
+
 			case 'number':
 				printf(
 					'<input type="number" id="%1$s" name="%1$s" value="%2$s" class="regular-text" %3$s />',
@@ -399,6 +421,37 @@ final class BookFields {
 		}
 
 		echo '</div>';
+	}
+
+	/**
+	 * Every registered user's display name, alphabetical, for the
+	 * "Borrowed To" picker (sb_borrowed_to) -- except the user currently
+	 * filling out this form, who can't lend a book to themselves. Both
+	 * the option value and its label are the display name, not the user
+	 * id: this field has always stored a plain name string
+	 * (BookRowSchema/CSV import-export, BookDetailsMetaBox), so keeping
+	 * the dropdown's value in that same shape means no other code needs
+	 * to change to understand it.
+	 *
+	 * @return array<string, string>
+	 */
+	private static function user_options(): array {
+		$users = get_users(
+			array(
+				'fields'  => array( 'display_name' ),
+				'exclude' => array( get_current_user_id() ),
+				'orderby' => 'display_name',
+				'order'   => 'ASC',
+			)
+		);
+
+		$options = array();
+
+		foreach ( $users as $user ) {
+			$options[ $user->display_name ] = $user->display_name;
+		}
+
+		return $options;
 	}
 
 	/**

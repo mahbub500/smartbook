@@ -331,6 +331,153 @@
 	}
 
 	/**
+	 * Progressively enhance a "user_select" field (see
+	 * BookFields::render_field()'s "user_select" case -- currently just
+	 * "Borrowed To") into a searchable, scrollable combobox: a text box
+	 * to filter by name, a scrollable dropdown of matches, and a small
+	 * "x" button that appears once something is typed or selected and
+	 * wipes both the search text and the underlying selection. The
+	 * original <select> stays in the DOM (just visually hidden) and is
+	 * what actually submits with the form -- this only ever assigns to
+	 * its .value.
+	 */
+	function sb_initUserSelects( sb_scope ) {
+		var sb_wrappers = sb_scope.querySelectorAll( '[data-sb-user-select]' );
+
+		sb_wrappers.forEach( function ( sb_wrapper ) {
+			var sb_native = sb_wrapper.querySelector( '.sb-user-select__native' );
+
+			if ( ! sb_native ) {
+				return;
+			}
+
+			sb_native.classList.add( 'sb-hidden' );
+
+			var sb_options = Array.prototype.slice.call( sb_native.querySelectorAll( 'option' ) )
+				.filter( function ( sb_option ) {
+					return '' !== sb_option.value;
+				} )
+				.map( function ( sb_option ) {
+					return { value: sb_option.value, label: sb_option.textContent };
+				} );
+
+			var sb_labelFor = function ( sb_value ) {
+				var sb_match = sb_options.filter( function ( sb_opt ) {
+					return sb_opt.value === sb_value;
+				} )[ 0 ];
+
+				return sb_match ? sb_match.label : '';
+			};
+
+			var sb_field = sb_document.createElement( 'div' );
+			sb_field.className = 'sb-user-select__field';
+
+			var sb_search = sb_document.createElement( 'input' );
+			sb_search.type = 'text';
+			sb_search.className = 'sb-user-select__input';
+			sb_search.setAttribute( 'autocomplete', 'off' );
+			sb_search.setAttribute( 'placeholder', 'Search…' );
+
+			var sb_clear = sb_document.createElement( 'button' );
+			sb_clear.type = 'button';
+			sb_clear.className = 'sb-user-select__clear sb-hidden';
+			sb_clear.setAttribute( 'aria-label', 'Clear' );
+			sb_clear.innerHTML = '&times;';
+
+			var sb_dropdown = sb_document.createElement( 'ul' );
+			sb_dropdown.className = 'sb-user-select__dropdown sb-hidden';
+
+			sb_field.appendChild( sb_search );
+			sb_field.appendChild( sb_clear );
+			sb_wrapper.appendChild( sb_field );
+			sb_wrapper.appendChild( sb_dropdown );
+
+			var sb_renderDropdown = function ( sb_query ) {
+				sb_dropdown.innerHTML = '';
+
+				var sb_matches = sb_options.filter( function ( sb_opt ) {
+					return '' === sb_query || -1 !== sb_opt.label.toLowerCase().indexOf( sb_query );
+				} );
+
+				if ( 0 === sb_matches.length ) {
+					var sb_empty = sb_document.createElement( 'li' );
+					sb_empty.className = 'sb-user-select__empty';
+					sb_empty.textContent = 'No matches.';
+					sb_dropdown.appendChild( sb_empty );
+					return;
+				}
+
+				sb_matches.forEach( function ( sb_opt ) {
+					var sb_item = sb_document.createElement( 'li' );
+					var sb_button = sb_document.createElement( 'button' );
+
+					sb_button.type = 'button';
+					sb_button.className = 'sb-user-select__option';
+					sb_button.textContent = sb_opt.label;
+
+					// mousedown (not click) fires before the search
+					// input's blur, so the selection registers before
+					// the dropdown gets a chance to close underneath it.
+					sb_button.addEventListener( 'mousedown', function ( sb_event ) {
+						sb_event.preventDefault();
+						sb_native.value = sb_opt.value;
+						sb_native.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+						sb_search.value = sb_opt.label;
+						sb_clear.classList.remove( 'sb-hidden' );
+						sb_dropdown.classList.add( 'sb-hidden' );
+					} );
+
+					sb_item.appendChild( sb_button );
+					sb_dropdown.appendChild( sb_item );
+				} );
+			};
+
+			var sb_wipe = function () {
+				sb_native.value = '';
+				sb_native.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+				sb_search.value = '';
+				sb_clear.classList.add( 'sb-hidden' );
+				sb_dropdown.classList.add( 'sb-hidden' );
+			};
+
+			sb_search.addEventListener( 'focus', function () {
+				sb_renderDropdown( sb_search.value.trim().toLowerCase() );
+				sb_dropdown.classList.remove( 'sb-hidden' );
+			} );
+
+			sb_search.addEventListener( 'input', function () {
+				sb_renderDropdown( sb_search.value.trim().toLowerCase() );
+				sb_dropdown.classList.remove( 'sb-hidden' );
+				sb_clear.classList.toggle( 'sb-hidden', '' === sb_search.value.trim() );
+			} );
+
+			sb_search.addEventListener( 'blur', function () {
+				sb_dropdown.classList.add( 'sb-hidden' );
+
+				// Nothing was actually picked from the dropdown -- snap
+				// the visible text back to whatever is really selected,
+				// so leftover typed text never looks selected when it isn't.
+				if ( sb_search.value !== sb_labelFor( sb_native.value ) ) {
+					sb_search.value = sb_labelFor( sb_native.value );
+					sb_clear.classList.toggle( 'sb-hidden', '' === sb_native.value );
+				}
+			} );
+
+			sb_clear.addEventListener( 'mousedown', function ( sb_event ) {
+				sb_event.preventDefault();
+				sb_wipe();
+				sb_search.focus();
+			} );
+
+			// Initial state: reflect whatever the server pre-selected
+			// (including a value restored from a draft cookie, since
+			// sb_initFormDraft() already ran by the time this does).
+			sb_search.value = sb_labelFor( sb_native.value );
+			sb_clear.classList.toggle( 'sb-hidden', '' === sb_native.value );
+		} );
+	}
+
+	/**
 	 * Wire up one taxonomy picker's search box, if it has one (only a
 	 * picker with at least one existing term gets one -- see
 	 * AbstractBookFormPage::render_taxonomy_field()): filters the
@@ -649,6 +796,7 @@
 		sb_initSelectAll( sb_document );
 		sb_initTabs( sb_document );
 		sb_initTaxonomyPickers( sb_document );
+		sb_initUserSelects( sb_document );
 
 		sb_document.dispatchEvent( new CustomEvent( 'sb:admin:ready', { detail: sb_window.sbAdmin } ) );
 	} );

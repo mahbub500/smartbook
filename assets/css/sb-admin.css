@@ -253,6 +253,101 @@
 }
 
 /* -------------------------------------------------------------------- */
+/* User select combobox (Add/Edit Book forms: Borrowed To)               */
+/* -------------------------------------------------------------------- */
+
+.sb-user-select {
+	position: relative;
+}
+
+.sb-user-select__field {
+	position: relative;
+}
+
+.sb-user-select__input {
+	box-sizing: border-box;
+	width: 100%;
+	padding: var( --sb-space-2 ) var( --sb-space-5 ) var( --sb-space-2 ) var( --sb-space-3 );
+	background: var( --sb-color-bg );
+	color: var( --sb-color-text );
+	border: 1px solid var( --sb-color-border );
+	border-radius: var( --sb-radius );
+}
+
+.sb-user-select__input:focus {
+	border-color: var( --sb-color-primary );
+	box-shadow: 0 0 0 1px var( --sb-color-primary );
+	outline: none;
+}
+
+.sb-user-select__clear {
+	position: absolute;
+	top: 50%;
+	right: var( --sb-space-2 );
+	transform: translateY( -50% );
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	padding: 0;
+	background: transparent;
+	border: 0;
+	border-radius: 50%;
+	color: var( --sb-color-text-muted );
+	font-size: 16px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.sb-user-select__clear:hover,
+.sb-user-select__clear:focus-visible {
+	background: var( --sb-color-bg-subtle );
+	color: var( --sb-color-text );
+}
+
+.sb-user-select__dropdown {
+	position: absolute;
+	z-index: 10;
+	top: calc( 100% + 4px );
+	right: 0;
+	left: 0;
+	max-height: 200px;
+	margin: 0;
+	padding: var( --sb-space-1 );
+	overflow-y: auto;
+	background: var( --sb-color-bg );
+	border: 1px solid var( --sb-color-border );
+	border-radius: var( --sb-radius );
+	box-shadow: var( --sb-shadow );
+	list-style: none;
+}
+
+.sb-user-select__option {
+	display: block;
+	width: 100%;
+	padding: var( --sb-space-2 );
+	background: transparent;
+	border: 0;
+	border-radius: var( --sb-radius );
+	color: var( --sb-color-text );
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.sb-user-select__option:hover,
+.sb-user-select__option:focus-visible {
+	background: var( --sb-color-bg-subtle );
+}
+
+.sb-user-select__empty {
+	padding: var( --sb-space-2 );
+	color: var( --sb-color-text-muted );
+	font-size: 12px;
+}
+
+/* -------------------------------------------------------------------- */
 /* Taxonomy picker (Add/Edit Book forms)                                 */
 /* -------------------------------------------------------------------- */
 
