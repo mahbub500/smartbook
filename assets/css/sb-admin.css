@@ -1035,6 +1035,31 @@
 	border-color: var( --sb-color-star-filled );
 }
 
+.sb-badge--post-publish {
+	color: var( --sb-color-success );
+	border-color: var( --sb-color-success );
+}
+
+.sb-badge--post-draft {
+	color: var( --sb-color-text-muted );
+	border-color: var( --sb-color-border );
+}
+
+.sb-badge--post-pending {
+	color: var( --sb-color-star-filled );
+	border-color: var( --sb-color-star-filled );
+}
+
+.sb-badge--post-private {
+	color: var( --sb-color-primary );
+	border-color: var( --sb-color-primary );
+}
+
+.sb-badge--post-trash {
+	color: var( --sb-color-error );
+	border-color: var( --sb-color-error );
+}
+
 /* -------------------------------------------------------------------- */
 /* QR code / barcode meta boxes                                          */
 /* -------------------------------------------------------------------- */

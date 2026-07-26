@@ -23,10 +23,10 @@ if ( ! class_exists( WP_List_Table::class ) ) {
 }
 
 /**
- * Renders the "sb_book" catalog as a WP_List_Table: cover, title,
- * author, ISBN, genre, shelf, reading status, rating, favorite, and a
- * row-level actions column, with column sorting, pagination, search,
- * status view tabs, and genre/shelf/favorite filters.
+ * Renders the "sb_book" catalog as a WP_List_Table: cover, title, post
+ * status, author, ISBN, genre, shelf, reading status, rating, favorite,
+ * and a row-level actions column, with column sorting, pagination,
+ * search, status view tabs, and genre/shelf/favorite filters.
  *
  * This class only builds the query and renders rows; Admin\Pages\BooksPage
  * owns capability checks and processes bulk/row actions before ever
@@ -49,17 +49,18 @@ final class BooksListTable extends WP_List_Table {
 	 */
 	public function get_columns(): array {
 		return array(
-			'cb'       => '<input type="checkbox" />',
-			'cover'    => __( 'Cover', 'smartbook' ),
-			'title'    => __( 'Title', 'smartbook' ),
-			'author'   => __( 'Author', 'smartbook' ),
-			'isbn'     => __( 'ISBN', 'smartbook' ),
-			'genre'    => __( 'Genre', 'smartbook' ),
-			'shelf'    => __( 'Shelf', 'smartbook' ),
-			'status'   => __( 'Reading Status', 'smartbook' ),
-			'rating'   => __( 'Rating', 'smartbook' ),
-			'favorite' => __( 'Favorite', 'smartbook' ),
-			'actions'  => __( 'Actions', 'smartbook' ),
+			'cb'          => '<input type="checkbox" />',
+			'cover'       => __( 'Cover', 'smartbook' ),
+			'title'       => __( 'Title', 'smartbook' ),
+			'post_status' => __( 'Status', 'smartbook' ),
+			'author'      => __( 'Author', 'smartbook' ),
+			'isbn'        => __( 'ISBN', 'smartbook' ),
+			'genre'       => __( 'Genre', 'smartbook' ),
+			'shelf'       => __( 'Shelf', 'smartbook' ),
+			'status'      => __( 'Reading Status', 'smartbook' ),
+			'rating'      => __( 'Rating', 'smartbook' ),
+			'favorite'    => __( 'Favorite', 'smartbook' ),
+			'actions'     => __( 'Actions', 'smartbook' ),
 		);
 	}
 
@@ -233,6 +234,34 @@ final class BooksListTable extends WP_List_Table {
 			'<strong><a class="row-title" href="%s">%s</a></strong>',
 			esc_url( $this->edit_book_link( $item->ID ) ),
 			esc_html( get_the_title( $item ) )
+		);
+	}
+
+	/**
+	 * Post status badge (Published/Draft/Pending Review/Private/Trash) --
+	 * distinct from column_status()'s "Reading Status" (the "sb_status"
+	 * meta) -- needed because the "All" view tab (see get_views()) mixes
+	 * every non-trash status together, with nothing otherwise showing
+	 * which of them a given row actually has.
+	 *
+	 * @param WP_Post $item Current row.
+	 */
+	public function column_post_status( WP_Post $item ): string {
+		$labels = array(
+			'publish' => __( 'Published', 'smartbook' ),
+			'draft'   => __( 'Draft', 'smartbook' ),
+			'pending' => __( 'Pending Review', 'smartbook' ),
+			'private' => __( 'Private', 'smartbook' ),
+			'trash'   => __( 'Trash', 'smartbook' ),
+		);
+
+		$status = $item->post_status;
+		$label  = $labels[ $status ] ?? ucfirst( $status );
+
+		return sprintf(
+			'<span class="sb-badge sb-badge--post-%1$s">%2$s</span>',
+			esc_attr( $status ),
+			esc_html( $label )
 		);
 	}
 
