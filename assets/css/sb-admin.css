@@ -256,6 +256,54 @@
 /* Taxonomy picker (Add/Edit Book forms)                                 */
 /* -------------------------------------------------------------------- */
 
+.sb-taxonomy-picker__search-wrap {
+	position: relative;
+	margin-bottom: var( --sb-space-2 );
+}
+
+.sb-taxonomy-picker__search {
+	box-sizing: border-box;
+	width: 100%;
+	padding: var( --sb-space-1 ) var( --sb-space-5 ) var( --sb-space-1 ) var( --sb-space-2 );
+	background: var( --sb-color-bg );
+	color: var( --sb-color-text );
+	border: 1px solid var( --sb-color-border );
+	border-radius: var( --sb-radius );
+	font-size: 12px;
+}
+
+.sb-taxonomy-picker__search:focus {
+	border-color: var( --sb-color-primary );
+	box-shadow: 0 0 0 1px var( --sb-color-primary );
+	outline: none;
+}
+
+.sb-taxonomy-picker__search-clear {
+	position: absolute;
+	top: 50%;
+	right: var( --sb-space-1 );
+	transform: translateY( -50% );
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	background: transparent;
+	border: 0;
+	border-radius: 50%;
+	color: var( --sb-color-text-muted );
+	font-size: 14px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.sb-taxonomy-picker__search-clear:hover,
+.sb-taxonomy-picker__search-clear:focus-visible {
+	background: var( --sb-color-bg-subtle );
+	color: var( --sb-color-text );
+}
+
 .sb-taxonomy-picker__list {
 	max-height: 160px;
 	margin: 0 0 var( --sb-space-2 );

@@ -435,14 +435,15 @@ abstract class AbstractBookFormPage implements Hookable {
 
 	/**
 	 * Render the taxonomy section: one picker per taxonomy, each a
-	 * checkbox per existing term (pre-checked against current_terms())
-	 * plus a small "+ Add new" control (see sb-admin.js'
-	 * sb_initTaxonomyPickers()) that appends a fresh checked checkbox
-	 * client-side for a name typed on the spot. Either way, what reaches
-	 * the server is the same "array of term names" shape
-	 * BookRowSchema/the CSV import format already expect, so a name that
-	 * doesn't match an existing term is created automatically by
-	 * BookRowSchema::apply_row() on save -- nothing new to persist here.
+	 * checkbox per existing term (pre-checked against current_terms()),
+	 * a search box to filter that list client-side when it has any terms
+	 * (see sb-admin.js' sb_initTaxonomyPickers()), and a small "+ Add
+	 * new" control that appends a fresh checked checkbox client-side for
+	 * a name typed on the spot. Either way, what reaches the server is
+	 * the same "array of term names" shape BookRowSchema/the CSV import
+	 * format already expect, so a name that doesn't match an existing
+	 * term is created automatically by BookRowSchema::apply_row() on
+	 * save -- nothing new to persist here.
 	 */
 	private function render_taxonomy_section(): void {
 		printf( '<h3 class="sb-meta-box__section-title">%s</h3>', esc_html__( 'Authors & Categorization', 'smartbook' ) );
@@ -478,6 +479,26 @@ abstract class AbstractBookFormPage implements Hookable {
 
 		echo '<div class="sb-field-group sb-taxonomy-picker" data-sb-taxonomy-picker>';
 		printf( '<span class="sb-field-group__label">%s</span>', esc_html( $label ) );
+
+		if ( array() !== $terms ) {
+			echo '<div class="sb-taxonomy-picker__search-wrap">';
+			printf(
+				'<input type="text" class="sb-taxonomy-picker__search" placeholder="%1$s" aria-label="%2$s" />',
+				esc_attr__( 'Search…', 'smartbook' ),
+				esc_attr(
+					sprintf(
+						/* translators: %s: taxonomy field label, e.g. "Genres". */
+						__( 'Search %s', 'smartbook' ),
+						$label
+					)
+				)
+			);
+			printf(
+				'<button type="button" class="sb-taxonomy-picker__search-clear sb-hidden" aria-label="%s">&times;</button>',
+				esc_attr__( 'Clear search', 'smartbook' )
+			);
+			echo '</div>';
+		}
 
 		echo '<ul class="sb-taxonomy-picker__list">';
 

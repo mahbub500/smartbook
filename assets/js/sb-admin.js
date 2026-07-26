@@ -331,13 +331,56 @@
 	}
 
 	/**
+	 * Wire up one taxonomy picker's search box, if it has one (only a
+	 * picker with at least one existing term gets one -- see
+	 * AbstractBookFormPage::render_taxonomy_field()): filters the
+	 * checklist to items whose term name contains the typed text,
+	 * case-insensitively, and shows/hides the small "x" clear button
+	 * alongside it. Re-reads the list live on every keystroke, so it
+	 * also covers checkboxes appended afterward by the "+ Add new"
+	 * control.
+	 */
+	function sb_initTaxonomySearch( sb_picker, sb_list ) {
+		var sb_search = sb_picker.querySelector( '.sb-taxonomy-picker__search' );
+		var sb_clear = sb_picker.querySelector( '.sb-taxonomy-picker__search-clear' );
+
+		if ( ! sb_search || ! sb_list ) {
+			return;
+		}
+
+		var sb_applyFilter = function () {
+			var sb_query = sb_search.value.trim().toLowerCase();
+
+			sb_list.querySelectorAll( 'li' ).forEach( function ( sb_item ) {
+				var sb_matches = '' === sb_query || -1 !== sb_item.textContent.toLowerCase().indexOf( sb_query );
+				sb_item.classList.toggle( 'sb-hidden', ! sb_matches );
+			} );
+
+			if ( sb_clear ) {
+				sb_clear.classList.toggle( 'sb-hidden', '' === sb_query );
+			}
+		};
+
+		sb_search.addEventListener( 'input', sb_applyFilter );
+
+		if ( sb_clear ) {
+			sb_clear.addEventListener( 'click', function () {
+				sb_search.value = '';
+				sb_applyFilter();
+				sb_search.focus();
+			} );
+		}
+	}
+
+	/**
 	 * Wire up each Add Book taxonomy picker's "+ Add new" control: reveal
 	 * the inline mini-form, then on "Add" (or Enter in the text field)
 	 * either check an already-listed term with the same name or append a
 	 * fresh checked checkbox for it. Purely a client-side convenience --
 	 * the appended checkbox posts like any other, and an unrecognised
 	 * name is created automatically server-side on save (see
-	 * AddBookPage::render_taxonomy_field()'s doc comment).
+	 * AddBookPage::render_taxonomy_field()'s doc comment). Also wires up
+	 * the search box (sb_initTaxonomySearch()) that filters the same list.
 	 */
 	function sb_initTaxonomyPickers( sb_scope ) {
 		var sb_pickers = sb_scope.querySelectorAll( '[data-sb-taxonomy-picker]' );
@@ -348,6 +391,8 @@
 			var sb_input = sb_picker.querySelector( '.sb-taxonomy-picker__input' );
 			var sb_addButton = sb_picker.querySelector( '.sb-taxonomy-picker__add-button' );
 			var sb_list = sb_picker.querySelector( '.sb-taxonomy-picker__list' );
+
+			sb_initTaxonomySearch( sb_picker, sb_list );
 
 			if ( ! sb_toggle || ! sb_addPanel || ! sb_input || ! sb_addButton || ! sb_list ) {
 				return;
