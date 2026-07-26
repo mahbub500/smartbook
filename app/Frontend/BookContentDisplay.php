@@ -477,7 +477,7 @@ final class BookContentDisplay implements Hookable {
 		return sprintf(
 			'<p class="sb-book-hero__availability"><a href="%s">%s</a></p>',
 			esc_url( wp_login_url( (string) get_permalink( $post_id ) ) ),
-			esc_html__( 'Log in to request this book', 'smartbook' )
+			esc_html__( 'Log in to Borrow this book', 'smartbook' )
 		);
 	}
 
