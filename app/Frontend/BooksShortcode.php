@@ -240,7 +240,7 @@ final class BooksShortcode implements Hookable {
 	 */
 	private function render_pagination( WP_Query $query, array $filters ): string {
 		$total = (int) $query->max_num_pages;
-Gallery
+
 		if ( $total <= 1 ) {
 			return '';
 		}
