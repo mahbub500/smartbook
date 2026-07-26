@@ -105,6 +105,37 @@ final class AdminMenu implements Hookable {
 	public function register_hooks(): void {
 		add_action( 'admin_menu', array( $this, 'register' ) );
 		add_action( 'admin_head', array( $this, 'hide_from_menu' ) );
+		add_filter( 'parent_file', array( $this, 'fix_taxonomy_parent_file' ) );
+	}
+
+	/**
+	 * Force WordPress to recognize "SmartBook" as the current top-level
+	 * menu while on one of the four taxonomy screens (Authors, Genres,
+	 * Publishers, Shelves).
+	 *
+	 * wp-admin/edit-tags.php unconditionally sets $parent_file to
+	 * "edit.php?post_type=$post_type" for any taxonomy attached to a
+	 * custom post type -- but BookPostType is registered with
+	 * show_in_menu => false, so that slug was never registered as a
+	 * top-level menu at all. wp-admin/menu-header.php then looks for a
+	 * top-level $menu entry whose slug equals $parent_file to decide
+	 * which item gets the "current"/expanded treatment; finding none,
+	 * it marks nothing current, and the *entire* SmartBook submenu
+	 * collapses to hover-only on these four screens -- fixing just the
+	 * submenu_file (see register()'s "&amp;" comment) isn't enough on
+	 * its own, since that comparison never even runs without a matching
+	 * parent first.
+	 */
+	public function fix_taxonomy_parent_file( string $parent_file ): string {
+		$screen = get_current_screen();
+
+		if ( null === $screen || '' === (string) $screen->taxonomy ) {
+			return $parent_file;
+		}
+
+		$taxonomies = array( AuthorTaxonomy::SLUG, GenreTaxonomy::SLUG, PublisherTaxonomy::SLUG, ShelfTaxonomy::SLUG );
+
+		return in_array( $screen->taxonomy, $taxonomies, true ) ? self::PARENT_SLUG : $parent_file;
 	}
 
 	/**
@@ -152,12 +183,23 @@ final class AdminMenu implements Hookable {
 			);
 		}
 
+		// "&amp;", not a literal "&": wp-admin/edit-tags.php builds its own
+		// $submenu_file as "edit-tags.php?taxonomy=$taxonomy&amp;post_type=$post_type"
+		// and wp-admin/menu-header.php compares that against each
+		// registered slug with strict string equality (no normalization).
+		// A literal "&" here would never match, so WordPress would never
+		// recognize "SmartBook" as the current parent while on any of
+		// these four taxonomy screens -- the sidebar's SmartBook submenu
+		// would collapse instead of staying expanded, even though the
+		// screen itself still renders fine (the browser's own query
+		// string is unaffected by this, it's purely an internal
+		// comparison string).
 		add_submenu_page(
 			self::PARENT_SLUG,
 			__( 'Authors', 'smartbook' ),
 			__( 'Authors', 'smartbook' ),
 			'manage_categories',
-			'edit-tags.php?taxonomy=' . AuthorTaxonomy::SLUG . '&post_type=' . BookPostType::SLUG
+			'edit-tags.php?taxonomy=' . AuthorTaxonomy::SLUG . '&amp;post_type=' . BookPostType::SLUG
 		);
 
 		add_submenu_page(
@@ -165,7 +207,7 @@ final class AdminMenu implements Hookable {
 			__( 'Genres', 'smartbook' ),
 			__( 'Genres', 'smartbook' ),
 			'manage_categories',
-			'edit-tags.php?taxonomy=' . GenreTaxonomy::SLUG . '&post_type=' . BookPostType::SLUG
+			'edit-tags.php?taxonomy=' . GenreTaxonomy::SLUG . '&amp;post_type=' . BookPostType::SLUG
 		);
 
 		add_submenu_page(
@@ -173,7 +215,7 @@ final class AdminMenu implements Hookable {
 			__( 'Publishers', 'smartbook' ),
 			__( 'Publishers', 'smartbook' ),
 			'manage_categories',
-			'edit-tags.php?taxonomy=' . PublisherTaxonomy::SLUG . '&post_type=' . BookPostType::SLUG
+			'edit-tags.php?taxonomy=' . PublisherTaxonomy::SLUG . '&amp;post_type=' . BookPostType::SLUG
 		);
 
 		add_submenu_page(
@@ -181,7 +223,7 @@ final class AdminMenu implements Hookable {
 			__( 'Shelves', 'smartbook' ),
 			__( 'Shelves', 'smartbook' ),
 			'manage_categories',
-			'edit-tags.php?taxonomy=' . ShelfTaxonomy::SLUG . '&post_type=' . BookPostType::SLUG
+			'edit-tags.php?taxonomy=' . ShelfTaxonomy::SLUG . '&amp;post_type=' . BookPostType::SLUG
 		);
 
 		// Visible only when there's something to print; both label
