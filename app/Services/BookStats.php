@@ -157,6 +157,64 @@ final class BookStats {
 	}
 
 	/**
+	 * Every book ever marked "sb_borrowed", filtered by loan status, for
+	 * Admin\Pages\BorrowedBooksPage's management table. Unlike
+	 * borrow_alerts() (only what needs attention right now), this
+	 * includes ordinary on-time loans too. Sorted soonest-due first;
+	 * books with no return date sort last.
+	 *
+	 * @param string $filter "active" (not yet returned), "returned", or "all".
+	 *
+	 * @return array<int, array{post_id: int, title: string, borrowed_to: string, borrow_date: string, return_date: string, reminder_date: string, lost: bool, returned: bool, overdue: bool}>
+	 */
+	public function borrowed_books( string $filter = 'active' ): array {
+		$today = current_time( 'Y-m-d' );
+		$rows  = array();
+
+		foreach ( $this->posts() as $post ) {
+			if ( '1' !== (string) get_post_meta( $post->ID, 'sb_borrowed', true ) ) {
+				continue;
+			}
+
+			$returned = '1' === (string) get_post_meta( $post->ID, 'sb_returned', true );
+
+			if ( 'active' === $filter && $returned ) {
+				continue;
+			}
+
+			if ( 'returned' === $filter && ! $returned ) {
+				continue;
+			}
+
+			$return_date = (string) get_post_meta( $post->ID, 'sb_return_date', true );
+
+			$rows[] = array(
+				'post_id'       => $post->ID,
+				'title'         => get_the_title( $post ),
+				'borrowed_to'   => (string) get_post_meta( $post->ID, 'sb_borrowed_to', true ),
+				'borrow_date'   => (string) get_post_meta( $post->ID, 'sb_borrow_date', true ),
+				'return_date'   => $return_date,
+				'reminder_date' => (string) get_post_meta( $post->ID, 'sb_reminder', true ),
+				'lost'          => '1' === (string) get_post_meta( $post->ID, 'sb_lost', true ),
+				'returned'      => $returned,
+				'overdue'       => ! $returned && '' !== $return_date && $return_date < $today,
+			);
+		}
+
+		usort(
+			$rows,
+			static function ( array $a, array $b ): int {
+				$a_date = '' !== $a['return_date'] ? $a['return_date'] : '9999-99-99';
+				$b_date = '' !== $b['return_date'] ? $b['return_date'] : '9999-99-99';
+
+				return strcmp( $a_date, $b_date );
+			}
+		);
+
+		return $rows;
+	}
+
+	/**
 	 * Book counts grouped by the year of their "sb_purchase_date" meta,
 	 * ascending. Books without a purchase date are not counted, since
 	 * there is nothing to chart them by.

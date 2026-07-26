@@ -911,7 +911,8 @@
 	border-color: var( --sb-color-border );
 }
 
-.sb-reminders-table {
+.sb-reminders-table,
+.sb-borrowed-books-table {
 	max-width: none;
 	margin-bottom: 0;
 }
@@ -1011,6 +1012,16 @@
 .sb-badge--reminder {
 	color: var( --sb-color-star-filled );
 	border-color: var( --sb-color-star-filled );
+}
+
+.sb-badge--on_loan {
+	color: var( --sb-color-primary );
+	border-color: var( --sb-color-primary );
+}
+
+.sb-badge--returned {
+	color: var( --sb-color-success );
+	border-color: var( --sb-color-success );
 }
 
 /* -------------------------------------------------------------------- */

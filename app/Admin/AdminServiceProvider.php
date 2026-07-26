@@ -14,6 +14,7 @@ use SmartBook\Admin\Pages\AllLabelsPage;
 use SmartBook\Admin\Pages\BarcodeLabelsPage;
 use SmartBook\Admin\Pages\BookCardsPage;
 use SmartBook\Admin\Pages\BooksPage;
+use SmartBook\Admin\Pages\BorrowedBooksPage;
 use SmartBook\Admin\Pages\DashboardPage;
 use SmartBook\Admin\Pages\EditBookPage;
 use SmartBook\Admin\Pages\ImportExportPage;
@@ -51,6 +52,11 @@ final class AdminServiceProvider extends AbstractServiceProvider {
 		$container->singleton(
 			BooksPage::class,
 			static fn ( ContainerInterface $container ): BooksPage => new BooksPage( $container->make( BarcodeManager::class ) )
+		);
+
+		$container->singleton(
+			BorrowedBooksPage::class,
+			static fn ( ContainerInterface $container ): BorrowedBooksPage => new BorrowedBooksPage( $container->make( BookStats::class ) )
 		);
 
 		$container->singleton( AddBookPage::class, static fn (): AddBookPage => new AddBookPage() );
@@ -116,6 +122,7 @@ final class AdminServiceProvider extends AbstractServiceProvider {
 			static fn ( ContainerInterface $container ): AdminMenu => new AdminMenu(
 				$container->make( DashboardPage::class ),
 				$container->make( BooksPage::class ),
+				$container->make( BorrowedBooksPage::class ),
 				$container->make( AddBookPage::class ),
 				$container->make( EditBookPage::class ),
 				$container->make( LabelsPage::class ),
@@ -136,6 +143,7 @@ final class AdminServiceProvider extends AbstractServiceProvider {
 	public function boot( ContainerInterface $container ): void {
 		$container->make( AdminMenu::class )->register_hooks();
 		$container->make( DashboardPage::class )->register_hooks();
+		$container->make( BorrowedBooksPage::class )->register_hooks();
 		$container->make( AddBookPage::class )->register_hooks();
 		$container->make( EditBookPage::class )->register_hooks();
 		$container->make( ImportExportPage::class )->register_hooks();

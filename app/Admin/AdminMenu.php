@@ -14,6 +14,7 @@ use SmartBook\Admin\Pages\AllLabelsPage;
 use SmartBook\Admin\Pages\BarcodeLabelsPage;
 use SmartBook\Admin\Pages\BookCardsPage;
 use SmartBook\Admin\Pages\BooksPage;
+use SmartBook\Admin\Pages\BorrowedBooksPage;
 use SmartBook\Admin\Pages\DashboardPage;
 use SmartBook\Admin\Pages\EditBookPage;
 use SmartBook\Admin\Pages\ImportExportPage;
@@ -31,18 +32,18 @@ use SmartBook\Taxonomies\ShelfTaxonomy;
 use function sb_option;
 
 /**
- * Registers the top-level "SmartBook" admin menu and its ten entries:
- * Dashboard, Books, Authors, Genres, Publishers, Shelves, Labels,
- * Statistics, Import Export, and Settings, plus six deliberately hidden
- * pages: the label-print pages "QR Labels", "Barcode Labels", "All
- * Labels", and "Book Cards" (linked to from the visible "Labels" page
- * instead of directly), and the custom "Add New Book"/"Edit Book" forms
- * (see register()).
+ * Registers the top-level "SmartBook" admin menu and its eleven entries:
+ * Dashboard, Books, Borrowed Books, Authors, Genres, Publishers, Shelves,
+ * Labels, Statistics, Import Export, and Settings, plus six deliberately
+ * hidden pages: the label-print pages "QR Labels", "Barcode Labels",
+ * "All Labels", and "Book Cards" (linked to from the visible "Labels"
+ * page instead of directly), and the custom "Add New Book"/"Edit Book"
+ * forms (see register()).
  *
  * BookPostType and the four linked taxonomies are registered with
  * show_in_menu => false, so WordPress does not also auto-add its own
  * menu entries for them; every entry here is explicit, so the visible
- * menu is exactly those ten items, no more.
+ * menu is exactly those eleven items, no more.
  */
 final class AdminMenu implements Hookable {
 
@@ -67,22 +68,24 @@ final class AdminMenu implements Hookable {
 	private const HIDDEN_SLUGS = array( 'sb_add_book', 'sb_edit_book', 'sb_qr_labels', 'sb_barcode_labels', 'sb_all_labels', 'sb_book_cards' );
 
 	/**
-	 * @param DashboardPage     $dashboard      Dashboard page renderer.
-	 * @param BooksPage         $books          Books list page renderer.
-	 * @param AddBookPage       $add_book       Custom "Add New Book" form renderer.
-	 * @param EditBookPage      $edit_book      Custom "Edit Book" form renderer.
-	 * @param LabelsPage        $labels         Labels hub page renderer.
-	 * @param StatisticsPage    $statistics     Statistics page renderer.
-	 * @param ImportExportPage  $import_export  Import/export page renderer.
-	 * @param QrLabelsPage      $qr_labels      QR label print page renderer.
-	 * @param BarcodeLabelsPage $barcode_labels Barcode label print page renderer.
-	 * @param AllLabelsPage     $all_labels     Combined QR + barcode label print page renderer.
-	 * @param BookCardsPage     $book_cards     Book detail card print page renderer.
-	 * @param SettingsPage      $settings       Settings page renderer.
+	 * @param DashboardPage      $dashboard       Dashboard page renderer.
+	 * @param BooksPage          $books           Books list page renderer.
+	 * @param BorrowedBooksPage  $borrowed_books  Borrowed books management page renderer.
+	 * @param AddBookPage        $add_book        Custom "Add New Book" form renderer.
+	 * @param EditBookPage       $edit_book       Custom "Edit Book" form renderer.
+	 * @param LabelsPage         $labels          Labels hub page renderer.
+	 * @param StatisticsPage     $statistics      Statistics page renderer.
+	 * @param ImportExportPage   $import_export   Import/export page renderer.
+	 * @param QrLabelsPage       $qr_labels       QR label print page renderer.
+	 * @param BarcodeLabelsPage  $barcode_labels  Barcode label print page renderer.
+	 * @param AllLabelsPage      $all_labels      Combined QR + barcode label print page renderer.
+	 * @param BookCardsPage      $book_cards      Book detail card print page renderer.
+	 * @param SettingsPage       $settings        Settings page renderer.
 	 */
 	public function __construct(
 		private readonly DashboardPage $dashboard,
 		private readonly BooksPage $books,
+		private readonly BorrowedBooksPage $borrowed_books,
 		private readonly AddBookPage $add_book,
 		private readonly EditBookPage $edit_book,
 		private readonly LabelsPage $labels,
@@ -135,6 +138,19 @@ final class AdminMenu implements Hookable {
 			'sb_books',
 			array( $this->books, 'render' )
 		);
+
+		// Visible only when the Borrow Management feature itself is on --
+		// otherwise there is nothing this page could ever show.
+		if ( sb_option( 'enable_borrow', true ) ) {
+			add_submenu_page(
+				self::PARENT_SLUG,
+				__( 'Borrowed Books', 'smartbook' ),
+				__( 'Borrowed Books', 'smartbook' ),
+				BookPostType::CAP_EDIT_BOOKS,
+				'sb_borrowed_books',
+				array( $this->borrowed_books, 'render' )
+			);
+		}
 
 		add_submenu_page(
 			self::PARENT_SLUG,
