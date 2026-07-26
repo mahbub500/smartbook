@@ -10,11 +10,14 @@ declare(strict_types=1);
 namespace SmartBook\Admin;
 
 use SmartBook\Admin\Pages\AddBookPage;
+use SmartBook\Admin\Pages\AllLabelsPage;
 use SmartBook\Admin\Pages\BarcodeLabelsPage;
+use SmartBook\Admin\Pages\BookCardsPage;
 use SmartBook\Admin\Pages\BooksPage;
 use SmartBook\Admin\Pages\DashboardPage;
 use SmartBook\Admin\Pages\EditBookPage;
 use SmartBook\Admin\Pages\ImportExportPage;
+use SmartBook\Admin\Pages\LabelsPage;
 use SmartBook\Admin\Pages\QrLabelsPage;
 use SmartBook\Admin\Pages\SettingsPage;
 use SmartBook\Admin\Pages\StatisticsPage;
@@ -60,6 +63,8 @@ final class AdminServiceProvider extends AbstractServiceProvider {
 			)
 		);
 
+		$container->singleton( LabelsPage::class, static fn (): LabelsPage => new LabelsPage() );
+
 		$container->singleton( StatisticsPage::class, static fn (): StatisticsPage => new StatisticsPage() );
 
 		$container->singleton(
@@ -94,16 +99,32 @@ final class AdminServiceProvider extends AbstractServiceProvider {
 		);
 
 		$container->singleton(
+			AllLabelsPage::class,
+			static fn ( ContainerInterface $container ): AllLabelsPage => new AllLabelsPage(
+				$container->make( QrCodeManager::class ),
+				$container->make( BarcodeManager::class )
+			)
+		);
+
+		$container->singleton(
+			BookCardsPage::class,
+			static fn ( ContainerInterface $container ): BookCardsPage => new BookCardsPage( $container->make( QrCodeManager::class ) )
+		);
+
+		$container->singleton(
 			AdminMenu::class,
 			static fn ( ContainerInterface $container ): AdminMenu => new AdminMenu(
 				$container->make( DashboardPage::class ),
 				$container->make( BooksPage::class ),
 				$container->make( AddBookPage::class ),
 				$container->make( EditBookPage::class ),
+				$container->make( LabelsPage::class ),
 				$container->make( StatisticsPage::class ),
 				$container->make( ImportExportPage::class ),
 				$container->make( QrLabelsPage::class ),
 				$container->make( BarcodeLabelsPage::class ),
+				$container->make( AllLabelsPage::class ),
+				$container->make( BookCardsPage::class ),
 				$container->make( SettingsPage::class )
 			)
 		);

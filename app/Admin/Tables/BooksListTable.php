@@ -17,8 +17,6 @@ use WP_List_Table;
 use WP_Post;
 use WP_Query;
 
-use function sb_option;
-
 if ( ! class_exists( WP_List_Table::class ) ) {
 	require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
 }
@@ -87,20 +85,12 @@ final class BooksListTable extends WP_List_Table {
 			);
 		}
 
-		$actions = array(
+		// Label printing is reached from the "Labels" sidebar page instead
+		// (Admin\Pages\LabelsPage), not from here.
+		return array(
 			'trash'     => __( 'Move to Trash', 'smartbook' ),
 			'bulk_edit' => __( 'Bulk Edit', 'smartbook' ),
 		);
-
-		if ( sb_option( 'enable_qr', true ) ) {
-			$actions['print_qr'] = __( 'Print QR Labels', 'smartbook' );
-		}
-
-		if ( sb_option( 'enable_barcode', true ) ) {
-			$actions['print_barcode'] = __( 'Print Barcode Labels', 'smartbook' );
-		}
-
-		return $actions;
 	}
 
 	/**
@@ -382,17 +372,17 @@ final class BooksListTable extends WP_List_Table {
 			esc_html__( 'Edit', 'smartbook' )
 		);
 
-		$links[] = sprintf(
-			'<a class="button button-small" href="%s">%s</a>',
-			esc_url( $this->print_label_url( 'sb_qr_labels', $item->ID ) ),
-			esc_html__( 'Print QR Label', 'smartbook' )
-		);
+		if ( ! $is_trashed ) {
+			$view_url = $this->view_book_link( $item );
 
-		$links[] = sprintf(
-			'<a class="button button-small" href="%s">%s</a>',
-			esc_url( $this->print_label_url( 'sb_barcode_labels', $item->ID ) ),
-			esc_html__( 'Print Barcode Label', 'smartbook' )
-		);
+			if ( '' !== $view_url ) {
+				$links[] = sprintf(
+					'<a class="button button-small" href="%1$s" target="_blank" rel="noopener noreferrer">%2$s</a>',
+					esc_url( $view_url ),
+					esc_html( 'publish' === $item->post_status ? __( 'View', 'smartbook' ) : __( 'Preview', 'smartbook' ) )
+				);
+			}
+		}
 
 		if ( $is_trashed ) {
 			$links[] = sprintf(
@@ -419,22 +409,6 @@ final class BooksListTable extends WP_List_Table {
 	}
 
 	/**
-	 * URL to this book's single-label print sheet for a given label page.
-	 *
-	 * @param string $page_slug Either "sb_qr_labels" or "sb_barcode_labels".
-	 */
-	private function print_label_url( string $page_slug, int $post_id ): string {
-		return add_query_arg(
-			array(
-				'page'            => $page_slug,
-				'sb_book_id'      => array( $post_id ),
-				'sb_print_labels' => '1',
-			),
-			admin_url( 'admin.php' )
-		);
-	}
-
-	/**
 	 * URL to the custom Edit Book page (Admin\Pages\EditBookPage) for a
 	 * given book -- not get_edit_post_link()/the native post editor,
 	 * which EditBookPage's own redirect_native_edit() bounces back here
@@ -448,6 +422,22 @@ final class BooksListTable extends WP_List_Table {
 			),
 			admin_url( 'admin.php' )
 		);
+	}
+
+	/**
+	 * URL to view a book on the live front-end (its permalink once
+	 * published, WordPress's own draft-preview link otherwise). Not
+	 * called for a trashed book -- see column_actions() -- since neither
+	 * link means anything for one.
+	 */
+	private function view_book_link( WP_Post $item ): string {
+		if ( 'publish' === $item->post_status ) {
+			return (string) get_permalink( $item );
+		}
+
+		$preview_link = get_preview_post_link( $item );
+
+		return null !== $preview_link ? $preview_link : '';
 	}
 
 	/**

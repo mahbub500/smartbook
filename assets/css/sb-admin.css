@@ -928,19 +928,71 @@
 /* Labels (QR + barcode): selection checklist                            */
 /* -------------------------------------------------------------------- */
 
+.sb-label-selection {
+	max-width: 520px;
+}
+
+.sb-label-select-list__select-all {
+	font-weight: 600;
+}
+
 .sb-label-select-list {
 	max-width: 480px;
 	max-height: 420px;
-	overflow-y: auto;
 	margin: var( --sb-space-3 ) 0;
-	padding: var( --sb-space-3 ) var( --sb-space-4 );
+	padding: var( --sb-space-2 );
+	overflow-y: auto;
 	background: var( --sb-color-bg );
 	border: 1px solid var( --sb-color-border );
 	border-radius: var( --sb-radius );
+	list-style: none;
 }
 
 .sb-label-select-list li {
-	margin-bottom: var( --sb-space-2 );
+	margin: 0;
+}
+
+.sb-label-select-list label {
+	display: flex;
+	align-items: center;
+	gap: var( --sb-space-2 );
+	padding: var( --sb-space-2 );
+	border-radius: var( --sb-radius );
+	font-weight: 400;
+	transition: background var( --sb-transition );
+}
+
+.sb-label-select-list label:hover {
+	background: var( --sb-color-bg-subtle );
+}
+
+.sb-label-select-list input[type='checkbox'] {
+	accent-color: var( --sb-color-primary );
+}
+
+.sb-label-select-list__cover {
+	flex-shrink: 0;
+	width: 32px;
+	height: 48px;
+	object-fit: cover;
+	background: var( --sb-color-bg-subtle );
+	border-radius: 3px;
+}
+
+.sb-label-select-list__cover--placeholder {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 16px;
+	border: 1px dashed var( --sb-color-border );
+}
+
+.sb-label-select-list__title {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 /* -------------------------------------------------------------------- */
@@ -949,7 +1001,7 @@
 
 .sb-labels-grid {
 	display: grid;
-	grid-template-columns: repeat( 3, 1fr );
+	grid-template-columns: repeat( auto-fill, minmax( 140px, 1fr ) );
 	gap: var( --sb-space-4 );
 	max-width: 900px;
 	margin-top: var( --sb-space-4 );
@@ -959,19 +1011,26 @@
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: var( --sb-space-1 );
-	padding: var( --sb-space-3 );
+	gap: var( --sb-space-2 );
+	padding: var( --sb-space-4 );
 	background: #fff;
 	color: #1d2327;
-	border: 1px dashed var( --sb-color-border );
-	border-radius: var( --sb-radius );
+	border: 1px solid var( --sb-color-border );
+	border-radius: var( --sb-radius-lg );
+	box-shadow: var( --sb-shadow );
 	text-align: center;
+	transition: box-shadow var( --sb-transition );
+}
+
+.sb-label:hover {
+	box-shadow: 0 4px 12px rgba( 0, 0, 0, 0.12 );
 }
 
 .sb-label__image {
 	width: 100%;
 	max-width: 120px;
 	height: auto;
+	border-radius: var( --sb-radius );
 }
 
 .sb-label__title {
@@ -986,6 +1045,9 @@
 }
 
 .sb-label__code {
+	padding: 2px 8px;
+	background: #f6f7f7;
+	border-radius: 999px;
 	font-size: 10px;
 	letter-spacing: 0.03em;
 	color: #1d2327;
@@ -994,6 +1056,85 @@
 .sb-label__shelf {
 	font-size: 11px;
 	color: #646970;
+}
+
+/* -------------------------------------------------------------------- */
+/* Book cards (Admin\Pages\BookCardsPage), a richer QR + detail label    */
+/* -------------------------------------------------------------------- */
+
+.sb-labels-grid--cards {
+	grid-template-columns: repeat( auto-fill, minmax( 300px, 1fr ) );
+}
+
+.sb-book-card {
+	display: flex;
+	align-items: flex-start;
+	gap: var( --sb-space-3 );
+	padding: var( --sb-space-4 );
+	background: #fff;
+	color: #1d2327;
+	border: 1px solid var( --sb-color-border );
+	border-radius: var( --sb-radius-lg );
+	box-shadow: var( --sb-shadow );
+	text-align: left;
+	transition: box-shadow var( --sb-transition );
+}
+
+.sb-book-card:hover {
+	box-shadow: 0 4px 12px rgba( 0, 0, 0, 0.12 );
+}
+
+.sb-book-card__cover {
+	flex: 0 0 70px;
+	width: 70px;
+	height: 105px;
+	object-fit: cover;
+	background: #f6f7f7;
+	border-radius: var( --sb-radius );
+}
+
+.sb-book-card__cover--placeholder {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 28px;
+	border: 1px dashed var( --sb-color-border );
+}
+
+.sb-book-card__body {
+	display: flex;
+	flex: 1 1 auto;
+	min-width: 0;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.sb-book-card__title {
+	font-weight: 700;
+	font-size: 14px;
+	line-height: 1.3;
+}
+
+.sb-book-card__authors {
+	margin-bottom: 4px;
+	font-size: 12px;
+	color: #646970;
+}
+
+.sb-book-card__meta {
+	font-size: 11px;
+	color: #1d2327;
+}
+
+.sb-book-card__meta strong {
+	font-weight: 600;
+	color: #646970;
+}
+
+.sb-book-card__qr {
+	flex: 0 0 70px;
+	width: 70px;
+	height: 70px;
 }
 
 /* -------------------------------------------------------------------- */
@@ -1344,6 +1485,17 @@
 
 	.sb-label {
 		border: 1px dashed #999;
+		break-inside: avoid;
+		page-break-inside: avoid;
+	}
+
+	.sb-labels-grid--cards {
+		grid-template-columns: repeat( 2, 1fr );
+	}
+
+	.sb-book-card {
+		border: 1px dashed #999;
+		box-shadow: none;
 		break-inside: avoid;
 		page-break-inside: avoid;
 	}

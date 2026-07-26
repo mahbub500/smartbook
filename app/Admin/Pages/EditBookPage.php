@@ -270,6 +270,35 @@ final class EditBookPage extends AbstractBookFormPage {
 	/**
 	 * {@inheritDoc}
 	 *
+	 * A "View Book" link to the live front-end page for a published
+	 * book, or "Preview" (WordPress's own draft-preview link) otherwise.
+	 * Opens in a new tab so leaving to look doesn't lose unsaved changes
+	 * in this form.
+	 */
+	protected function render_header_actions(): void {
+		$book = $this->book();
+
+		if ( null === $book ) {
+			return;
+		}
+
+		$is_published = 'publish' === $book->post_status;
+		$url          = $is_published ? get_permalink( $book ) : get_preview_post_link( $book );
+
+		if ( null === $url || false === $url || '' === $url ) {
+			return;
+		}
+
+		printf(
+			' <a href="%1$s" class="page-title-action" target="_blank" rel="noopener noreferrer">%2$s</a>',
+			esc_url( $url ),
+			esc_html( $is_published ? __( 'View Book', 'smartbook' ) : __( 'Preview', 'smartbook' ) )
+		);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
 	 * Reuses QrCodeMetaBox/BarcodeMetaBox's own render() output (each
 	 * already gated on its own "enable_qr"/"enable_barcode" setting) so
 	 * their display + "Regenerate"/"Print Label" actions keep working

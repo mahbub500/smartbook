@@ -78,26 +78,6 @@ final class BooksPage {
 			return;
 		}
 
-		if ( 'print_qr' === $action && array() !== $ids ) {
-			check_admin_referer( 'bulk-books' );
-
-			if ( ! sb_option( 'enable_qr', true ) ) {
-				$this->redirect_with_notice( 'error', __( 'QR codes are disabled in SmartBook Settings.', 'smartbook' ) );
-			}
-
-			$this->redirect_to_print_labels( 'sb_qr_labels', $ids );
-		}
-
-		if ( 'print_barcode' === $action && array() !== $ids ) {
-			check_admin_referer( 'bulk-books' );
-
-			if ( ! sb_option( 'enable_barcode', true ) ) {
-				$this->redirect_with_notice( 'error', __( 'Barcodes are disabled in SmartBook Settings.', 'smartbook' ) );
-			}
-
-			$this->redirect_to_print_labels( 'sb_barcode_labels', $ids );
-		}
-
 		if ( in_array( $action, array( 'trash', 'untrash', 'delete' ), true ) && array() !== $ids ) {
 			$this->handle_row_action( $action, $ids );
 		}
@@ -212,26 +192,6 @@ final class BooksPage {
 		}
 
 		$this->redirect_with_notice( 'success', $this->row_action_message( $action, $count ) );
-	}
-
-	/**
-	 * Redirect the selected books straight to a label print sheet. This
-	 * is a navigation, not a mutation, so unlike handle_row_action() it
-	 * doesn't touch any data or show a result notice.
-	 *
-	 * @param string $page_slug Either "sb_qr_labels" or "sb_barcode_labels".
-	 * @param int[]  $ids       Post IDs to print labels for.
-	 */
-	private function redirect_to_print_labels( string $page_slug, array $ids ): never {
-		$args = array(
-			'page'            => $page_slug,
-			'sb_print_labels' => '1',
-			'sb_book_id'      => $ids,
-		);
-
-		wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
-
-		exit;
 	}
 
 	/**

@@ -10,11 +10,14 @@ declare(strict_types=1);
 namespace SmartBook\Admin;
 
 use SmartBook\Admin\Pages\AddBookPage;
+use SmartBook\Admin\Pages\AllLabelsPage;
 use SmartBook\Admin\Pages\BarcodeLabelsPage;
+use SmartBook\Admin\Pages\BookCardsPage;
 use SmartBook\Admin\Pages\BooksPage;
 use SmartBook\Admin\Pages\DashboardPage;
 use SmartBook\Admin\Pages\EditBookPage;
 use SmartBook\Admin\Pages\ImportExportPage;
+use SmartBook\Admin\Pages\LabelsPage;
 use SmartBook\Admin\Pages\QrLabelsPage;
 use SmartBook\Admin\Pages\SettingsPage;
 use SmartBook\Admin\Pages\StatisticsPage;
@@ -28,16 +31,18 @@ use SmartBook\Taxonomies\ShelfTaxonomy;
 use function sb_option;
 
 /**
- * Registers the top-level "SmartBook" admin menu and its nine entries:
- * Dashboard, Books, Authors, Genres, Publishers, Shelves, Statistics,
- * Import Export, and Settings, plus four deliberately hidden pages: the
- * label-print pages "QR Labels" and "Barcode Labels", and the custom
- * "Add New Book"/"Edit Book" forms (see register()).
+ * Registers the top-level "SmartBook" admin menu and its ten entries:
+ * Dashboard, Books, Authors, Genres, Publishers, Shelves, Labels,
+ * Statistics, Import Export, and Settings, plus six deliberately hidden
+ * pages: the label-print pages "QR Labels", "Barcode Labels", "All
+ * Labels", and "Book Cards" (linked to from the visible "Labels" page
+ * instead of directly), and the custom "Add New Book"/"Edit Book" forms
+ * (see register()).
  *
  * BookPostType and the four linked taxonomies are registered with
  * show_in_menu => false, so WordPress does not also auto-add its own
  * menu entries for them; every entry here is explicit, so the visible
- * menu is exactly those nine items, no more.
+ * menu is exactly those ten items, no more.
  */
 final class AdminMenu implements Hookable {
 
@@ -53,20 +58,26 @@ final class AdminMenu implements Hookable {
 	 * own bare sidebar link (no "book_id") is what gets hidden here; the
 	 * real, per-book "Edit" links (BooksListTable) carry a "book_id" and
 	 * live in the books table, not #adminmenu, so this doesn't touch them.
+	 * Listing "sb_all_labels"/"sb_book_cards" here is harmless even when
+	 * either isn't registered this request (see register()) -- the
+	 * selector simply matches nothing.
 	 *
 	 * @var string[]
 	 */
-	private const HIDDEN_SLUGS = array( 'sb_add_book', 'sb_edit_book', 'sb_qr_labels', 'sb_barcode_labels' );
+	private const HIDDEN_SLUGS = array( 'sb_add_book', 'sb_edit_book', 'sb_qr_labels', 'sb_barcode_labels', 'sb_all_labels', 'sb_book_cards' );
 
 	/**
 	 * @param DashboardPage     $dashboard      Dashboard page renderer.
 	 * @param BooksPage         $books          Books list page renderer.
 	 * @param AddBookPage       $add_book       Custom "Add New Book" form renderer.
 	 * @param EditBookPage      $edit_book      Custom "Edit Book" form renderer.
+	 * @param LabelsPage        $labels         Labels hub page renderer.
 	 * @param StatisticsPage    $statistics     Statistics page renderer.
 	 * @param ImportExportPage  $import_export  Import/export page renderer.
 	 * @param QrLabelsPage      $qr_labels      QR label print page renderer.
 	 * @param BarcodeLabelsPage $barcode_labels Barcode label print page renderer.
+	 * @param AllLabelsPage     $all_labels     Combined QR + barcode label print page renderer.
+	 * @param BookCardsPage     $book_cards     Book detail card print page renderer.
 	 * @param SettingsPage      $settings       Settings page renderer.
 	 */
 	public function __construct(
@@ -74,10 +85,13 @@ final class AdminMenu implements Hookable {
 		private readonly BooksPage $books,
 		private readonly AddBookPage $add_book,
 		private readonly EditBookPage $edit_book,
+		private readonly LabelsPage $labels,
 		private readonly StatisticsPage $statistics,
 		private readonly ImportExportPage $import_export,
 		private readonly QrLabelsPage $qr_labels,
 		private readonly BarcodeLabelsPage $barcode_labels,
+		private readonly AllLabelsPage $all_labels,
+		private readonly BookCardsPage $book_cards,
 		private readonly SettingsPage $settings
 	) {
 	}
@@ -154,6 +168,19 @@ final class AdminMenu implements Hookable {
 			'edit-tags.php?taxonomy=' . ShelfTaxonomy::SLUG . '&post_type=' . BookPostType::SLUG
 		);
 
+		// Visible only when there's something to print; both label
+		// settings off means the hub would have nothing to link to.
+		if ( sb_option( 'enable_qr', true ) || sb_option( 'enable_barcode', true ) ) {
+			add_submenu_page(
+				self::PARENT_SLUG,
+				__( 'Labels', 'smartbook' ),
+				__( 'Labels', 'smartbook' ),
+				BookPostType::CAP_EDIT_BOOKS,
+				'sb_labels',
+				array( $this->labels, 'render' )
+			);
+		}
+
 		add_submenu_page(
 			self::PARENT_SLUG,
 			__( 'Statistics', 'smartbook' ),
@@ -216,11 +243,11 @@ final class AdminMenu implements Hookable {
 		// below) route and are capability-gated like any other page;
 		// kept out of the visible menu by hide_from_menu() (CSS), not
 		// remove_submenu_page() -- see that method's doc comment for why.
-		// Both are reached via the books table's "Print ... Labels" bulk
-		// actions, their per-row "Print Label" links, and their respective
-		// meta boxes, not via direct navigation. Skipped entirely when the
-		// matching feature is disabled (Settings\Settings), so the page
-		// simply doesn't exist rather than existing-but-hidden.
+		// Both are reached via the visible "Labels" hub page above and
+		// their respective meta boxes' "Print Label" links, not via direct
+		// navigation. Skipped entirely when the matching feature is
+		// disabled (Settings\Settings), so the page simply doesn't exist
+		// rather than existing-but-hidden.
 		if ( sb_option( 'enable_qr', true ) ) {
 			add_submenu_page(
 				self::PARENT_SLUG,
@@ -240,6 +267,32 @@ final class AdminMenu implements Hookable {
 				BookPostType::CAP_EDIT_BOOKS,
 				'sb_barcode_labels',
 				array( $this->barcode_labels, 'render' )
+			);
+		}
+
+		// Only registered when both label kinds are enabled -- with just
+		// one on, this would only ever duplicate that single-type page.
+		if ( sb_option( 'enable_qr', true ) && sb_option( 'enable_barcode', true ) ) {
+			add_submenu_page(
+				self::PARENT_SLUG,
+				__( 'All Labels', 'smartbook' ),
+				__( 'All Labels', 'smartbook' ),
+				BookPostType::CAP_EDIT_BOOKS,
+				'sb_all_labels',
+				array( $this->all_labels, 'render' )
+			);
+		}
+
+		// Only needs a QR code, not a barcode, so this is gated on
+		// "enable_qr" alone.
+		if ( sb_option( 'enable_qr', true ) ) {
+			add_submenu_page(
+				self::PARENT_SLUG,
+				__( 'Book Cards', 'smartbook' ),
+				__( 'Book Cards', 'smartbook' ),
+				BookPostType::CAP_EDIT_BOOKS,
+				'sb_book_cards',
+				array( $this->book_cards, 'render' )
 			);
 		}
 	}

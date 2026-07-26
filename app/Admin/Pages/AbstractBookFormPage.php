@@ -139,6 +139,15 @@ abstract class AbstractBookFormPage implements Hookable {
 	}
 
 	/**
+	 * Extra action link(s) rendered inside the <h1>, WordPress's own
+	 * "page-title-action" convention (e.g. EditBookPage's "View
+	 * Book"/"Preview" link to the live front-end page); none by default,
+	 * since AddBookPage has no front-end page yet to link to.
+	 */
+	protected function render_header_actions(): void {
+	}
+
+	/**
 	 * Enqueue the WordPress media library and the shared cover
 	 * image/gallery picker script, only on this one screen --
 	 * wp_enqueue_media() pulls in a sizeable set of Backbone
@@ -171,7 +180,9 @@ abstract class AbstractBookFormPage implements Hookable {
 		}
 
 		echo '<div class="wrap sb-admin-page">';
-		printf( '<h1>%s</h1>', esc_html( $this->heading() ) );
+		printf( '<h1>%s', esc_html( $this->heading() ) );
+		$this->render_header_actions();
+		echo '</h1>';
 
 		$this->render_notice();
 
