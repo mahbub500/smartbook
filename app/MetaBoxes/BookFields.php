@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace SmartBook\MetaBoxes;
 
 use DateTimeImmutable;
+use WP_User;
 
 use function sb_option;
 
@@ -424,21 +425,25 @@ final class BookFields {
 	}
 
 	/**
-	 * Every registered user's display name, alphabetical, for the
+	 * Every registered user, alphabetical by display name, for the
 	 * "Borrowed To" picker (sb_borrowed_to) -- except the user currently
-	 * filling out this form, who can't lend a book to themselves. Both
-	 * the option value and its label are the display name, not the user
-	 * id: this field has always stored a plain name string
-	 * (BookRowSchema/CSV import-export, BookDetailsMetaBox), so keeping
-	 * the dropdown's value in that same shape means no other code needs
-	 * to change to understand it.
+	 * filling out this form, who can't lend a book to themselves. Keyed
+	 * by user id (the option value), not display name: unlike a name,
+	 * an id can't drift out of sync when someone changes their display
+	 * name later, and Admin\Pages\BorrowRequestController/
+	 * BorrowedBooksPage's "approve request" action already stores the
+	 * requester's id here. See borrowed_to_display() for turning a
+	 * stored id (or a legacy/free-text name -- the book scan page's own
+	 * "Borrow" quick action still accepts a plain typed name, since it's
+	 * meant to also cover lending to someone with no site account) back
+	 * into something displayable.
 	 *
 	 * @return array<string, string>
 	 */
 	private static function user_options(): array {
 		$users = get_users(
 			array(
-				'fields'  => array( 'display_name' ),
+				'fields'  => array( 'ID', 'display_name' ),
 				'exclude' => array( get_current_user_id() ),
 				'orderby' => 'display_name',
 				'order'   => 'ASC',
@@ -448,10 +453,33 @@ final class BookFields {
 		$options = array();
 
 		foreach ( $users as $user ) {
-			$options[ $user->display_name ] = $user->display_name;
+			$options[ (string) $user->ID ] = $user->display_name;
 		}
 
 		return $options;
+	}
+
+	/**
+	 * Turn a stored "sb_borrowed_to" value into something displayable:
+	 * a purely-numeric value is a user id (set by an approved borrow
+	 * request), resolved to that user's current display name --
+	 * "(deleted user)" if the account is gone -- so a later name change
+	 * never leaves this showing a stale name. Anything else is a
+	 * free-text name (the book scan page's "Borrow" quick action, or a
+	 * CSV import), shown as-is.
+	 */
+	public static function borrowed_to_display( string $raw ): string {
+		if ( '' === $raw ) {
+			return '';
+		}
+
+		if ( ! ctype_digit( $raw ) ) {
+			return $raw;
+		}
+
+		$user = get_userdata( (int) $raw );
+
+		return $user instanceof WP_User ? $user->display_name : __( '(deleted user)', 'smartbook' );
 	}
 
 	/**

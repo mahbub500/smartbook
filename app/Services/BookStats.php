@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace SmartBook\Services;
 
 use DateTimeImmutable;
+use SmartBook\MetaBoxes\BookFields;
 use SmartBook\PostTypes\BookPostType;
 use SmartBook\Taxonomies\AuthorTaxonomy;
 use SmartBook\Taxonomies\GenreTaxonomy;
@@ -194,9 +195,27 @@ final class BookStats {
 		return array(
 			'post_id'     => $post->ID,
 			'title'       => get_the_title( $post ),
-			'borrowed_to' => (string) get_post_meta( $post->ID, 'sb_borrowed_to', true ),
+			'borrowed_to' => BookFields::borrowed_to_display( (string) get_post_meta( $post->ID, 'sb_borrowed_to', true ) ),
 			'date'        => $date,
 			'status'      => $status,
+		);
+	}
+
+	/**
+	 * Number of active loans with a pending return request awaiting
+	 * admin confirmation, for the "Borrowed Books" sidebar menu's
+	 * notification bubble (see AdminMenu::add_borrow_request_bubble()).
+	 */
+	public function count_pending_return_requests(): int {
+		return count(
+			array_filter(
+				$this->posts(),
+				static function ( WP_Post $post ): bool {
+					return '1' === (string) get_post_meta( $post->ID, 'sb_borrowed', true )
+						&& '1' !== (string) get_post_meta( $post->ID, 'sb_returned', true )
+						&& '1' === (string) get_post_meta( $post->ID, 'sb_return_request', true );
+				}
+			)
 		);
 	}
 
@@ -207,9 +226,9 @@ final class BookStats {
 	 * includes ordinary on-time loans too. Sorted soonest-due first;
 	 * books with no return date sort last.
 	 *
-	 * @param string $filter "active" (not yet returned), "returned", or "all".
+	 * @param string $filter "active" (not yet returned), "return_requested" (active loans awaiting return confirmation), "returned", or "all".
 	 *
-	 * @return array<int, array{post_id: int, title: string, borrowed_to: string, borrow_date: string, return_date: string, reminder_date: string, lost: bool, returned: bool, overdue: bool}>
+	 * @return array<int, array{post_id: int, title: string, borrowed_to: string, borrow_date: string, return_date: string, reminder_date: string, lost: bool, returned: bool, overdue: bool, return_requested: bool}>
 	 */
 	public function borrowed_books( string $filter = 'active' ): array {
 		$today = current_time( 'Y-m-d' );
@@ -220,7 +239,8 @@ final class BookStats {
 				continue;
 			}
 
-			$returned = '1' === (string) get_post_meta( $post->ID, 'sb_returned', true );
+			$returned         = '1' === (string) get_post_meta( $post->ID, 'sb_returned', true );
+			$return_requested = '1' === (string) get_post_meta( $post->ID, 'sb_return_request', true );
 
 			if ( 'active' === $filter && $returned ) {
 				continue;
@@ -230,18 +250,23 @@ final class BookStats {
 				continue;
 			}
 
+			if ( 'return_requested' === $filter && ( $returned || ! $return_requested ) ) {
+				continue;
+			}
+
 			$return_date = (string) get_post_meta( $post->ID, 'sb_return_date', true );
 
 			$rows[] = array(
-				'post_id'       => $post->ID,
-				'title'         => get_the_title( $post ),
-				'borrowed_to'   => (string) get_post_meta( $post->ID, 'sb_borrowed_to', true ),
-				'borrow_date'   => (string) get_post_meta( $post->ID, 'sb_borrow_date', true ),
-				'return_date'   => $return_date,
-				'reminder_date' => (string) get_post_meta( $post->ID, 'sb_reminder', true ),
-				'lost'          => '1' === (string) get_post_meta( $post->ID, 'sb_lost', true ),
-				'returned'      => $returned,
-				'overdue'       => ! $returned && '' !== $return_date && $return_date < $today,
+				'post_id'          => $post->ID,
+				'title'            => get_the_title( $post ),
+				'borrowed_to'      => BookFields::borrowed_to_display( (string) get_post_meta( $post->ID, 'sb_borrowed_to', true ) ),
+				'borrow_date'      => (string) get_post_meta( $post->ID, 'sb_borrow_date', true ),
+				'return_date'      => $return_date,
+				'reminder_date'    => (string) get_post_meta( $post->ID, 'sb_reminder', true ),
+				'lost'             => '1' === (string) get_post_meta( $post->ID, 'sb_lost', true ),
+				'returned'         => $returned,
+				'overdue'          => ! $returned && '' !== $return_date && $return_date < $today,
+				'return_requested' => $return_requested,
 			);
 		}
 

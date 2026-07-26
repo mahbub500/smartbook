@@ -1024,6 +1024,11 @@
 	border-color: var( --sb-color-success );
 }
 
+.sb-badge--return-requested {
+	color: var( --sb-color-star-filled );
+	border-color: var( --sb-color-star-filled );
+}
+
 /* -------------------------------------------------------------------- */
 /* QR code / barcode meta boxes                                          */
 /* -------------------------------------------------------------------- */

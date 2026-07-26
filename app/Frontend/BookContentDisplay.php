@@ -299,10 +299,10 @@ final class BookContentDisplay implements Hookable {
 	}
 
 	/**
-	 * A one-time result banner for a just-submitted borrow request (see
-	 * Frontend\BorrowRequestController's redirect), read from its
-	 * "sb_borrow_notice" query flag. Read-only and nothing here mutates
-	 * state, so no nonce is needed to display it.
+	 * A one-time result banner for a just-submitted borrow or return
+	 * request (see Frontend\BorrowRequestController's redirects), read
+	 * from its "sb_borrow_notice" query flag. Read-only and nothing
+	 * here mutates state, so no nonce is needed to display it.
 	 */
 	private function render_borrow_notice(): string {
 		if ( ! isset( $_GET['sb_borrow_notice'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -312,9 +312,12 @@ final class BookContentDisplay implements Hookable {
 		$code = sanitize_key( wp_unslash( $_GET['sb_borrow_notice'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 		$messages = array(
-			'requested'         => array( 'success', __( 'Your request to borrow this book has been submitted. An admin will review it soon.', 'smartbook' ) ),
-			'unavailable'       => array( 'error', __( 'This book is currently unavailable to request.', 'smartbook' ) ),
-			'already_requested' => array( 'error', __( 'This book already has a pending request.', 'smartbook' ) ),
+			'requested'                => array( 'success', __( 'Your request to borrow this book has been submitted. An admin will review it soon.', 'smartbook' ) ),
+			'unavailable'              => array( 'error', __( 'This book is currently unavailable to request.', 'smartbook' ) ),
+			'already_requested'        => array( 'error', __( 'This book already has a pending request.', 'smartbook' ) ),
+			'return_requested'         => array( 'success', __( 'Your return request has been submitted. An admin will confirm it soon.', 'smartbook' ) ),
+			'not_your_book'            => array( 'error', __( 'This book isn\'t currently borrowed to you.', 'smartbook' ) ),
+			'return_already_requested' => array( 'error', __( 'A return has already been requested for this book.', 'smartbook' ) ),
 		);
 
 		if ( ! isset( $messages[ $code ] ) ) {
@@ -429,9 +432,11 @@ final class BookContentDisplay implements Hookable {
 	}
 
 	/**
-	 * Availability status/action: "Currently Borrowed", a "Request
-	 * Pending" notice (worded differently for the requester themself
-	 * than for anyone else), a "Request to Borrow" button for a
+	 * Availability status/action: "Currently Borrowed" for anyone else's
+	 * loan, or the viewer's own loan status (see render_own_loan_status())
+	 * when it's borrowed to themself -- see is_borrowed_by_current_user()
+	 * -- a "Request Pending" notice (worded differently for the requester
+	 * themself than for anyone else), a "Request to Borrow" button for a
 	 * logged-in visitor when the book is actually available, or a login
 	 * prompt for a logged-out one. '' entirely when Borrow Management
 	 * is disabled (Settings\Settings' "enable_borrow").
@@ -442,6 +447,10 @@ final class BookContentDisplay implements Hookable {
 		}
 
 		if ( $this->is_borrowed( $post_id ) ) {
+			if ( $this->is_borrowed_by_current_user( $post_id ) ) {
+				return $this->render_own_loan_status( $post_id );
+			}
+
 			return sprintf(
 				'<p class="sb-book-hero__availability sb-book-hero__availability--borrowed">%s</p>',
 				esc_html__( 'Currently Borrowed', 'smartbook' )
@@ -488,11 +497,69 @@ final class BookContentDisplay implements Hookable {
 	}
 
 	/**
+	 * The viewer's own loan status: "You Borrowed This Book" plus either
+	 * a "Return Book" button (no return requested yet) or a
+	 * "Return requested -- awaiting approval" status (sb_return_request
+	 * already set by BorrowRequestController::handle_return_request()).
+	 */
+	private function render_own_loan_status( int $post_id ): string {
+		$html  = sprintf(
+			'<p class="sb-book-hero__availability sb-book-hero__availability--borrowed">%s</p>',
+			esc_html__( 'You Borrowed This Book', 'smartbook' )
+		);
+
+		if ( '1' === (string) get_post_meta( $post_id, 'sb_return_request', true ) ) {
+			$html .= sprintf(
+				'<p class="sb-book-hero__availability sb-book-hero__availability--pending">%s</p>',
+				esc_html__( 'Return requested -- awaiting approval.', 'smartbook' )
+			);
+		} else {
+			$html .= $this->render_return_form( $post_id );
+		}
+
+		return $html;
+	}
+
+	/**
+	 * The "Return Book" form, posting to
+	 * Frontend\BorrowRequestController::RETURN_ACTION.
+	 */
+	private function render_return_form( int $post_id ): string {
+		$html  = sprintf( '<form method="post" action="%s" class="sb-borrow-request-form">', esc_url( admin_url( 'admin-post.php' ) ) );
+		$html .= wp_nonce_field( BorrowRequestController::return_nonce_action( $post_id ), BorrowRequestController::RETURN_NONCE_NAME, true, false );
+		$html .= sprintf( '<input type="hidden" name="action" value="%s" />', esc_attr( BorrowRequestController::RETURN_ACTION ) );
+		$html .= sprintf( '<input type="hidden" name="sb_post_id" value="%d" />', $post_id );
+		$html .= sprintf( '<button type="submit" class="sb-borrow-request-form__submit">%s</button>', esc_html__( 'Return Book', 'smartbook' ) );
+		$html .= '</form>';
+
+		return $html;
+	}
+
+	/**
 	 * Whether a book is currently on loan.
 	 */
 	private function is_borrowed( int $post_id ): bool {
 		return '1' === (string) get_post_meta( $post_id, 'sb_borrowed', true )
 			&& '1' !== (string) get_post_meta( $post_id, 'sb_returned', true );
+	}
+
+	/**
+	 * Whether the logged-in visitor is themself who this book is
+	 * borrowed to. Only ever true for a loan that started from an
+	 * approved request (BookFields::user_options()'s id-keyed
+	 * "sb_borrowed_to" -- see its own doc comment): a free-typed name
+	 * from the book scan page's "Borrow" quick action can't be reliably
+	 * tied to a specific account, so that case always reads as "someone
+	 * else has it", never as "you".
+	 */
+	private function is_borrowed_by_current_user( int $post_id ): bool {
+		if ( ! is_user_logged_in() ) {
+			return false;
+		}
+
+		$borrowed_to = (string) get_post_meta( $post_id, 'sb_borrowed_to', true );
+
+		return '' !== $borrowed_to && ctype_digit( $borrowed_to ) && (int) $borrowed_to === get_current_user_id();
 	}
 
 	/**

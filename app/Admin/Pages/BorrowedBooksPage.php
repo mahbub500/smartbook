@@ -13,14 +13,14 @@ use SmartBook\Admin\Support\RedirectsWithNotice;
 use SmartBook\Core\Contracts\Hookable;
 use SmartBook\PostTypes\BookPostType;
 use SmartBook\Services\BookStats;
-use WP_User;
 
 use function sb_format_date;
 
 /**
  * A dedicated list of every borrowed book and who has it, independent of
  * BooksPage's general catalog table: filterable by loan status ("On
- * Loan", "Returned", "All"), plus a "Requests" tab listing every pending
+ * Loan", "Returned", "All", "Return Requested" -- active loans awaiting
+ * return confirmation), plus a "Requests" tab listing every pending
  * "request to borrow" a front-end visitor submitted (see
  * Frontend\BorrowRequestController) with one-click Approve/Deny actions.
  * Approving is the only place "sb_borrowed"/"sb_borrowed_to"/
@@ -60,11 +60,12 @@ final class BorrowedBooksPage implements Hookable {
 	}
 
 	/**
-	 * Number of pending borrow requests, for AdminMenu's sidebar
-	 * notification bubble on this page's own menu entry.
+	 * Number of pending borrow requests plus pending return requests, for
+	 * AdminMenu's sidebar notification bubble on this page's own menu
+	 * entry.
 	 */
 	public function pending_request_count(): int {
-		return $this->stats->count_pending_borrow_requests();
+		return $this->stats->count_pending_borrow_requests() + $this->stats->count_pending_return_requests();
 	}
 
 	/**
@@ -107,7 +108,11 @@ final class BorrowedBooksPage implements Hookable {
 	/**
 	 * Mark a book returned (sb_returned = '1') and redirect back with a
 	 * result notice. Every other borrow field (borrowed_to, dates) is
-	 * left as-is, as a historical record of the loan.
+	 * left as-is, as a historical record of the loan. Also clears any
+	 * pending "sb_return_request" (see
+	 * Frontend\BorrowRequestController::handle_return_request()) whether
+	 * or not one was actually pending, since a book confirmed returned
+	 * here has nothing left to confirm.
 	 */
 	public function handle_mark_returned(): void {
 		$post_id = isset( $_GET['post_id'] ) ? absint( $_GET['post_id'] ) : 0;
@@ -119,6 +124,7 @@ final class BorrowedBooksPage implements Hookable {
 		}
 
 		update_post_meta( $post_id, 'sb_returned', '1' );
+		delete_post_meta( $post_id, 'sb_return_request' );
 
 		$this->redirect_with_notice( 'success', __( 'Book marked as returned.', 'smartbook' ) );
 	}
@@ -127,8 +133,10 @@ final class BorrowedBooksPage implements Hookable {
 	 * Approve a pending "request to borrow": this is the one and only
 	 * place the loan itself actually starts -- sets "sb_borrowed" (and
 	 * clears "sb_returned", in case this book was previously returned),
-	 * "sb_borrowed_to" (the requester's display name), and
-	 * "sb_borrow_date" (today), then clears the request meta.
+	 * "sb_borrowed_to" (the requester's user id -- see
+	 * BookFields::borrowed_to_display() for how that's turned back into
+	 * a name wherever it's shown), and "sb_borrow_date" (today), then
+	 * clears the request meta.
 	 */
 	public function handle_approve_request(): void {
 		$post_id = isset( $_GET['post_id'] ) ? absint( $_GET['post_id'] ) : 0;
@@ -145,11 +153,9 @@ final class BorrowedBooksPage implements Hookable {
 			$this->redirect_with_notice( 'error', __( 'That request no longer exists.', 'smartbook' ), array( 'status' => 'requests' ) );
 		}
 
-		$requester = get_userdata( $requester_id );
-
 		update_post_meta( $post_id, 'sb_borrowed', '1' );
 		update_post_meta( $post_id, 'sb_returned', '' );
-		update_post_meta( $post_id, 'sb_borrowed_to', $requester instanceof WP_User ? $requester->display_name : '' );
+		update_post_meta( $post_id, 'sb_borrowed_to', (string) $requester_id );
 		update_post_meta( $post_id, 'sb_borrow_date', current_time( 'Y-m-d' ) );
 		delete_post_meta( $post_id, 'sb_borrow_request_user' );
 		delete_post_meta( $post_id, 'sb_borrow_request_date' );
@@ -233,7 +239,7 @@ final class BorrowedBooksPage implements Hookable {
 	/**
 	 * Render one borrowed_books() row.
 	 *
-	 * @param array{post_id: int, title: string, borrowed_to: string, borrow_date: string, return_date: string, reminder_date: string, lost: bool, returned: bool, overdue: bool} $book Row data.
+	 * @param array{post_id: int, title: string, borrowed_to: string, borrow_date: string, return_date: string, reminder_date: string, lost: bool, returned: bool, overdue: bool, return_requested: bool} $book Row data.
 	 */
 	private function render_row( array $book ): void {
 		echo '<tr>';
@@ -255,7 +261,9 @@ final class BorrowedBooksPage implements Hookable {
 			printf(
 				'<a class="button button-small" href="%1$s">%2$s</a>',
 				esc_url( $this->mark_returned_url( $book['post_id'] ) ),
-				esc_html__( 'Mark Returned', 'smartbook' )
+				$book['return_requested']
+					? esc_html__( 'Confirm Return', 'smartbook' )
+					: esc_html__( 'Mark Returned', 'smartbook' )
 			);
 		}
 
@@ -293,7 +301,9 @@ final class BorrowedBooksPage implements Hookable {
 
 	/**
 	 * Build a status badge for one borrowed_books() row: "Returned",
-	 * "Lost", "Overdue", or the default "On Loan".
+	 * "Lost", "Overdue", or the default "On Loan" -- with a "Return
+	 * Requested" badge appended whenever the borrower has asked to
+	 * return an active (not yet confirmed-returned) loan.
 	 */
 	private function status_badge( array $book ): string {
 		if ( $book['returned'] ) {
@@ -304,33 +314,47 @@ final class BorrowedBooksPage implements Hookable {
 			return sprintf( '<span class="sb-badge sb-badge--lost">%s</span>', esc_html__( 'Lost', 'smartbook' ) );
 		}
 
-		if ( $book['overdue'] ) {
-			return sprintf( '<span class="sb-badge sb-badge--overdue">%s</span>', esc_html__( 'Overdue', 'smartbook' ) );
+		$badge = $book['overdue']
+			? sprintf( '<span class="sb-badge sb-badge--overdue">%s</span>', esc_html__( 'Overdue', 'smartbook' ) )
+			: sprintf( '<span class="sb-badge sb-badge--on_loan">%s</span>', esc_html__( 'On Loan', 'smartbook' ) );
+
+		if ( $book['return_requested'] ) {
+			$badge .= sprintf( ' <span class="sb-badge sb-badge--return-requested">%s</span>', esc_html__( 'Return Requested', 'smartbook' ) );
 		}
 
-		return sprintf( '<span class="sb-badge sb-badge--on_loan">%s</span>', esc_html__( 'On Loan', 'smartbook' ) );
+		return $badge;
 	}
 
 	/**
-	 * Render the "Requests" / "On Loan" / "Returned" / "All" filter tabs,
-	 * WordPress's own "subsubsub" list-table convention. "Requests"
-	 * carries a count bubble (matching the sidebar menu's own, see
-	 * AdminMenu::add_borrow_request_bubble()) whenever any are pending.
+	 * Render the "Requests" / "Return Requested" / "On Loan" / "Returned"
+	 * / "All" filter tabs, WordPress's own "subsubsub" list-table
+	 * convention. "Requests" and "Return Requested" each carry their own
+	 * count bubble (the two summed make up the sidebar menu's own
+	 * bubble, see AdminMenu::add_borrow_request_bubble()) whenever any
+	 * are pending.
 	 */
 	private function render_filter_tabs( string $current ): void {
 		$pending_count = $this->stats->count_pending_borrow_requests();
+		$return_count  = $this->stats->count_pending_return_requests();
 
 		$tabs = array(
-			'requests' => $pending_count > 0
+			'requests'         => $pending_count > 0
 				? sprintf(
 					/* translators: %d: number of pending borrow requests. */
 					__( 'Requests (%d)', 'smartbook' ),
 					$pending_count
 				)
 				: __( 'Requests', 'smartbook' ),
-			'active'   => __( 'On Loan', 'smartbook' ),
-			'returned' => __( 'Returned', 'smartbook' ),
-			'all'      => __( 'All', 'smartbook' ),
+			'return_requested' => $return_count > 0
+				? sprintf(
+					/* translators: %d: number of pending return requests. */
+					__( 'Return Requested (%d)', 'smartbook' ),
+					$return_count
+				)
+				: __( 'Return Requested', 'smartbook' ),
+			'active'           => __( 'On Loan', 'smartbook' ),
+			'returned'         => __( 'Returned', 'smartbook' ),
+			'all'              => __( 'All', 'smartbook' ),
 		);
 		$items = array();
 
@@ -372,14 +396,15 @@ final class BorrowedBooksPage implements Hookable {
 	}
 
 	/**
-	 * The requested filter ("requests", "active", "returned", "all"),
-	 * defaulting to "requests" for an unset or unrecognised value, so a
-	 * fresh visit to the page leads with whatever needs a decision.
+	 * The requested filter ("requests", "return_requested", "active",
+	 * "returned", "all"), defaulting to "requests" for an unset or
+	 * unrecognised value, so a fresh visit to the page leads with
+	 * whatever needs a decision.
 	 */
 	private function current_filter(): string {
 		$status = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'requests'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
-		return in_array( $status, array( 'requests', 'active', 'returned', 'all' ), true ) ? $status : 'requests';
+		return in_array( $status, array( 'requests', 'return_requested', 'active', 'returned', 'all' ), true ) ? $status : 'requests';
 	}
 
 	/**
